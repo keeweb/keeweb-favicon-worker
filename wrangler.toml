@@ -1,0 +1,24 @@
+# --------------------------------------------------
+#   Keeweb Favicon Cloudflare Worker
+# --------------------------------------------------
+
+name = "favicon"
+main = "src/index.js"
+compatibility_date = "2024-04-19"
+workers_dev = true
+node_compat = true
+
+# The rate limiting API is in open beta.
+[[unsafe.bindings]]
+name = "keeweb"
+type = "ratelimit"
+namespace_id = "1001"
+simple = { limit = 30, period = 60 }
+
+# env variables
+[vars]
+THROTTLE_DELAY_MS = 2000
+THROTTLE_AGGRESSIVE = true
+THROTTLE_AGGRESSIVE_PUNISH_MS = 5000
+THROTTLE_DAILY_ENABLED = true
+THROTTLE_DAILY_LIMIT = 400

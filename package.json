@@ -1,0 +1,61 @@
+{
+    "name": "@keeweb/favicon-worker-wrangler",
+    "version": "1.0.0",
+    "description": "Get the favicon of a URL",
+    "homepage": "https://github.com/keeweb/favicon-worker",
+    "author": "Aetherinox <adminservx@proton.me>",
+    "contributors": [
+        {
+            "name": "Aetherinox",
+            "email": "adminservx@proton.me",
+            "url": "https://github.com/Aetherinox"
+        },
+        {
+            "name": "AdminServ",
+            "email": "adminservx@proton.me",
+            "url": "https://github.com/AdminServ"
+        },
+        {
+            "name": "Antelle",
+            "url": "https://github.com/antelle"
+        }
+    ],
+    "private": true,
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/keeweb/favicon-worker.git"
+    },
+    "bugs": {
+        "url": "https://github.com/keeweb/favicon-worker/issues"
+    },
+    "license": "MIT",
+    "keywords": [
+        "keeweb",
+        "password-manager",
+        "favicon",
+        "cloudflare",
+        "worker"
+    ],
+    "scripts": {
+        "deploy": "wrangler deploy",
+        "dev": "wrangler dev",
+        "start": "wrangler dev",
+        "pretty": "prettier --write '**/*.{js,json}'",
+        "contrib:add": "all-contributors add",
+        "contrib:generate": "all-contributors generate",
+        "init": "node init.js",
+        "init:generate": "node init.js generate",
+        "env-init": "npx --quiet env-cmd --no-override node init.js",
+        "env-uuid": "npx --quiet env-cmd --no-override node init.js uuid",
+        "env-guid": "npx --quiet env-cmd --no-override node init.js guid",
+        "env-version": "node -p require('./package.json').version;"
+    },
+    "devDependencies": {
+        "rollup-plugin-node-polyfills": "^0.2.1",
+        "wrangler": "^3.53.0",
+        "prettier": "^3.2.5",
+        "all-contributors-cli": "^6.26.1",
+        "@types/uuid": "^9.0.8",
+        "uuid": "^9.0.1"
+    }
+}
