@@ -78,8 +78,12 @@ env:
       { "name": "› Updater",                    "color": "1BADDE", "description": "Auto-updater issues" },
       { "name": "› UX",                         "color": "1BADDE", "description": "UX and usability" },
       { "name": "› Website",                    "color": "fef2c0", "description": "Website https://keeweb.info" },
-      { "name": "⚠ Urgent",                    "color": "a8740e", "description": "Requires urgent attention" },
-      { "name": "⚠ Announcement",              "color": "DB4712", "description": "KeeWeb announcements" }
+      { "name": "⚠ Urgent",                     "color": "a8740e", "description": "Requires urgent attention" },
+      { "name": "⚠ Announcement",               "color": "DB4712", "description": "KeeWeb announcements" },
+      { "name": "📰 Progress Report",           "color": "392297", "description": "Updates on the development of KeeWeb" },
+      { "name": "📦 Release",                   "color": "277542", "description": "Release announcements" },
+      { "name": "✔️ Poll",                      "color": "972255", "description": "Community polls" }
+      { "name": "❔ Question",                  "color": "FFFFFF", "description": "All questions" }
     ]
 
 jobs:
