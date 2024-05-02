@@ -28,6 +28,7 @@ const serviceApi = `https://s2.googleusercontent.com/s2/favicons?domain={DOMAIN}
 const serviceBackup = 'https://raw.githubusercontent.com/keeweb/favicon-cdn/master';
 const faviconSvg = 'data:image/svg+xml,';
 const subdomain = 'favicon';
+const workerId = 'keeweb-worker';
 
 /*
     Maps
@@ -37,7 +38,16 @@ const subdomain = 'favicon';
 
 const mapAllowedNextCheckList = new Map();
 const mapDailyLimit = new Map();
-const mapBlockedIps = new Map([['127.0.0.11:8787', 'You have been blocked for abuse']]);
+const mapBlockedIps = new Map([['127.0.0.11:8787', 'Abuse']]);
+
+/*
+    Icon Loader Priority:
+        - cdn repo
+        - iconsOverrideIco (ico + png)
+        - iconsOverrideSvg (svg)
+        - api service (ddg, yandex, faviconkit, f1, unavatar)
+        - favicoDefaultSvg
+*/
 
 /*
     ICO, PNG Override Map > Secondary
@@ -61,21 +71,20 @@ const mapBlockedIps = new Map([['127.0.0.11:8787', 'You have been blocked for ab
 
             Method Section:     Icon Overrides > Local > Secondary
 
-
     icon converter:
         - https://github.com/icon11-community/Folder11-Ico
 */
 
 const iconsOverrideIco = {
-    'k/keewebtest': `https://keeweb.info/img/scr1.png`
+    'k/keewebtest.com': `https://keeweb.info/img/scr1.png`
 };
 
 /*
     Icons in this list are populated with svg paths. ensure icons are set to 32 x 32 pixels.
 */
 
-const iconsOverrideSVG = {
-    'k/keewebtest': `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512" fill="#1F85DE" width="32px" height="32px"><path class="fa-primary" d=""></path><path class="fa-secondary" d="M0 256a160 160 0 1 1 320 0A160 160 0 1 1 0 256z"></path></svg>`
+const iconsOverrideSvg = {
+    'k/keewebtest.com': `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 512" fill="#1F85DE" width="32px" height="32px"><path class="fa-primary" d=""></path><path class="fa-secondary" d="M0 256a160 160 0 1 1 320 0A160 160 0 1 1 0 256z"></path></svg>`
 };
 
 /*
@@ -125,12 +134,12 @@ function throwHelp(env, host, subdomain) {
 */
 
 function handleIconName(url) {
-    const matches = url.match(/^https?\:\/\/([^\/?#]+)(?:[\/?#]|$)/i);
+    const matches = url.match(/^(?:https?:\/\/)?(?:[^@\n]+@)?(?:www\.)?([^:\/\n?]+)/i);
     const hostname = (matches && matches[1]) || '';
-    let iconName = hostname.split('.')[0];
-    iconName = iconName.replace(/[,.\- ]/g, '_');
+    let iconName = hostname.replace(/[,\ ]/g, '_');
+    let baseName = hostname.split('.')[0];
 
-    return iconName;
+    return [ baseName, iconName ];
 }
 
 /*
@@ -417,6 +426,7 @@ export default {
 
         if (mapBlockedIps.has(clientIp)) {
             const reason = mapBlockedIps.get(clientIp) || 'Blocked';
+            console.log(`\x1b[32m[${workerId}]\x1b[0m BLOCK \x1b[33m[ip]\x1b[0m detected for \x1b[31m${clientIp}\x1b[0m \x1b[90m|\x1b[0m Reason: \x1b[33m${reason}\x1b[0m \x1b[90m|\x1b[0m \x1b[33mForbidden\x1b[0m`)
             return new Response(
                 `403 forbidden – you cannot access this service from ${clientIp}: Reason: ${reason}`,
                 { status: 403, reason: reason }
@@ -429,6 +439,7 @@ export default {
 
         const userAgent = request.headers.get('User-Agent') || '';
         if (userAgent.includes('bot')) {
+            console.log(`\x1b[32m[${workerId}]\x1b[0m LIMIT \x1b[33m[user-agent-bot]\x1b[0m detected for \x1b[31m${clientIp}\x1b[0m \x1b[90m|\x1b[0m \x1b[33mForbidden\x1b[0m`)
             return new Response(`403 - Block User Agent containing bot`, { status: 403 });
         }
 
@@ -442,6 +453,7 @@ export default {
         const nextAllowed = msToHuman(tsNextAllowed - now);
 
         if (bThrottle) {
+            console.log(`\x1b[32m[${workerId}]\x1b[0m LIMIT \x1b[33m[throttle]\x1b[0m exeeded by \x1b[31m${clientIp}\x1b[0m \x1b[90m|\x1b[0m Next allowed in \x1b[33m${nextAllowed}\x1b[0m \x1b[90m|\x1b[0m daily total: \x1b[33m${userDailyLimit}\x1b[0m`);
             return new Response(
                 `429 - Too many requests for ${clientIp}. must wait ${nextAllowed}. You have made ${userDailyLimit} total requests for the day.`,
                 { status: 429 }
@@ -455,6 +467,7 @@ export default {
         let bHitDailyLimit = await dailyLimit(env, clientIp, now);
 
         if (bHitDailyLimit) {
+            console.log(`\x1b[32m[${workerId}]\x1b[0m LIMIT \x1b[33m[daily]\x1b[0m \x1b[33m${userDailyLimit}\x1b[0m exeeded by \x1b[31m${clientIp}\x1b[0m`);
             return new Response(
                 `429 - You have hit your daily limit of ${userDailyLimit} requests for ${clientIp}`,
                 { status: 429 }
@@ -472,7 +485,8 @@ export default {
         */
 
         if (!success) {
-            return new Response(`429 Failure – rate limit exceeded for ${clientIp}`, {
+            console.log(`\x1b[32m[${workerId}]\x1b[0m LIMIT \x1b[33m[cloudflare]\x1b[0m detected for \x1b[31m${clientIp}\x1b[0m \x1b[90m|\x1b[0m \x1b[33mToo Many Requests\x1b[0m`)
+            return new Response(`429 Too Many Requests – rate limit exceeded for ${clientIp}`, {
                 status: 429
             });
         }
@@ -506,7 +520,7 @@ export default {
 
         if (!response) {
             response = await fetch(targetURL.origin, init).catch(() => {
-                console.log(`Fetch: failed to fetch: ${targetURL.origin}`);
+                console.log(`\x1b[32m[${workerId}]\x1b[0m FETCH failed to get: \x1b[31m${targetURL.origin}\x1b[0m`)
             });
         }
 
@@ -523,29 +537,10 @@ export default {
             get domain icon short name
         */
 
-        const iconName = handleIconName(targetURL.origin);
-        const iconFolder = iconName.charAt(0);
-        const iconPath = `${iconFolder}/${iconName}`;
-        const iconUrl = `${serviceBackup}/${iconFolder}/${iconName}.ico`;
-
-        /*
-            Custom SVG Loader
-
-            this shoudl be one of the first steps when processing a favicon.
-            any entries in the 'iconsOverrideSVG' object will override any other version of the website's favicon.
-        */
-
-        if (iconsOverrideSVG[iconPath]) {
-            let customSvgIcon = new Response(iconsOverrideSVG[iconPath], {
-                headers: { 'content-type': 'image/svg+xml' }
-            });
-
-            Object.keys(DEFAULT_SECURITY_HEADERS).map((name) => {
-                customSvgIcon.headers.set(name, DEFAULT_SECURITY_HEADERS[name]);
-            });
-
-            return customSvgIcon;
-        }
+        const [ base, iconName ] = handleIconName(targetURL.origin);
+        const baseFolder = base.charAt(0);
+        const iconPath = `${baseFolder}/${iconName}`;
+        const iconUrl = `${serviceBackup}/${baseFolder}/${iconName}.ico`;
 
         /*
             Icon Overrides > Favicon CDN Repo > Primary
@@ -568,9 +563,11 @@ export default {
 
         const iconRequest = new Request(iconUrl);
         if (iconRequest) {
-            const favicoFile = await fetch(`${iconUrl}`);
-            if (favicoFile && favicoFile.status === 200) {
-                const resp = new Response(favicoFile.body, { headers: favicoFile.headers });
+            console.log(`\x1b[32m[${workerId}]\x1b[0m LOCATE \x1b[33m[cdn]\x1b[0m \x1b[33m${iconUrl}\x1b[0m \x1b[90m|\x1b[0m query by \x1b[32m${clientIp}\x1b[0m`)
+
+            const fetchIcoCdn = await fetch(`${iconUrl}`);
+            if (fetchIcoCdn && fetchIcoCdn.status === 200) {
+                const resp = new Response(fetchIcoCdn.body, { headers: fetchIcoCdn.headers });
 
                 Object.keys(DEFAULT_SECURITY_HEADERS).map((name) => {
                     resp.headers.set(name, DEFAULT_SECURITY_HEADERS[name]);
@@ -579,6 +576,7 @@ export default {
                 return resp;
             }
         }
+
 
         /*
             Icon Overrides > Local > Secondary
@@ -597,9 +595,11 @@ export default {
             const ext = iconsOverrideIco[iconPath].split(/[#?]/)[0].split('.').pop().trim();
 
             if (ext === 'png' || ext === 'ico') {
-                const fav2 = await fetch(iconsOverrideIco[iconPath]);
-                if (fav2.status === 200) {
-                    const resp = new Response(fav2.body, { headers: fav2.headers });
+                console.log(`\x1b[32m[${workerId}]\x1b[0m LOCATE \x1b[33m[ico-png-override]\x1b[0m \x1b[33m${iconPath}\x1b[0m \x1b[90m|\x1b[0m query by \x1b[32m${clientIp}\x1b[0m`)
+
+                const fetchIcoPng = await fetch(iconsOverrideIco[iconPath]);
+                if (fetchIcoPng.status === 200) {
+                    const resp = new Response(fetchIcoPng.body, { headers: fetchIcoPng.headers });
                     Object.keys(DEFAULT_SECURITY_HEADERS).map((name) => {
                         resp.headers.set(name, DEFAULT_SECURITY_HEADERS[name]);
                     });
@@ -609,6 +609,27 @@ export default {
                     return resp;
                 }
             }
+        }
+
+        /*
+            Custom SVG Loader
+
+            this shoudl be one of the first steps when processing a favicon.
+            any entries in the 'iconsOverrideSvg' object will override any other version of the website's favicon.
+        */
+
+        if (iconsOverrideSvg[iconPath]) {
+            console.log(`\x1b[32m[${workerId}]\x1b[0m LOCATE \x1b[33m[svg-override]\x1b[0m \x1b[33m${iconPath}\x1b[0m \x1b[90m|\x1b[0m query by \x1b[32m${clientIp}\x1b[0m`)
+
+            let customSvgIcon = new Response(iconsOverrideSvg[iconPath], {
+                headers: { 'content-type': 'image/svg+xml' }
+            });
+
+            Object.keys(DEFAULT_SECURITY_HEADERS).map((name) => {
+                customSvgIcon.headers.set(name, DEFAULT_SECURITY_HEADERS[name]);
+            });
+
+            return customSvgIcon;
         }
 
         /*
@@ -661,6 +682,8 @@ export default {
         }
 
         if (serviceResultIcon && serviceResultIcon.status === 200) {
+            console.log(`\x1b[32m[${workerId}]\x1b[0m LOCATE \x1b[33m[api]\x1b[0m \x1b[33m${serviceQueryUrl}\x1b[0m \x1b[90m|\x1b[0m query by \x1b[32m${clientIp}\x1b[0m`)
+
             const resp = new Response(serviceResultIcon.body, {
                 headers: {
                     'Content-Type': 'application/json',
@@ -716,6 +739,8 @@ export default {
         Object.keys(DEFAULT_SECURITY_HEADERS).map((name) => {
             favicoDefault.headers.set(name, DEFAULT_SECURITY_HEADERS[name]);
         });
+
+        console.log(`\x1b[32m[${workerId}]\x1b[0m LOCATE \x1b[33m[svg-default]\x1b[0m \x1b[31mNo Icon Found\x1b[0m \x1b[90m|\x1b[0m query by \x1b[32m${clientIp}\x1b[0m`)
 
         return favicoDefault;
     }
