@@ -55,8 +55,8 @@ https://services.keeweb.info/favicon/keeweb.info/64
 
 | Parameter | Description | Status |
 | --- | --- | --- |
-| `DOMAIN` | Domain for the website you wish to grab the favicon for. Does not need `http/s` or `www` | Required |
-| `ICON_SIZE` | Size of the icon for the service to return | Optional<br>Default: `32` |
+| `DOMAIN` | Website you wish to grab favicon for. <br><sub>Does not need `http/s` or `www`</sub> | Required |
+| `ICON_SIZE` | Size of the icon to return | Optional<br>Default: `32` |
 
 <br />
 
