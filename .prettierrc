@@ -22,7 +22,7 @@
 #   @default    : 80
 #   @ref        : https://prettier.io/docs/en/options.html#print-width
 # --------------------------------------------------------------------------------------
-printWidth: 100
+printWidth: 120
 
 # --------------------------------------------------------------------------------------
 #   Specify the number of spaces per indentation-level.
