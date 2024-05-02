@@ -1,5 +1,5 @@
-name: "☁️ Publish › CF Worker"
-run-name: "☁️ Publish › CF Worker"
+name: "☁️ Worker › Release"
+run-name: "☁️ Worker › Release"
 
 on:
   workflow_dispatch:
