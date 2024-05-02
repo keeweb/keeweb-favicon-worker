@@ -79,7 +79,7 @@ env:
       { "name": "› UX",                         "color": "1BADDE", "description": "UX and usability" },
       { "name": "› Website",                    "color": "fef2c0", "description": "Website https://keeweb.info" },
       { "name": "⚠ Urgent",                    "color": "a8740e", "description": "Requires urgent attention" },
-      { "name": "⚠ Announcement",              "color": "a8740e", "description": "KeeWeb announcement" }
+      { "name": "⚠ Announcement",              "color": "DB4712", "description": "KeeWeb announcements" }
     ]
 
 jobs:
