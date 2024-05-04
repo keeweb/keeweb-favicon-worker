@@ -134,9 +134,10 @@ function throwHelp(env, host, subdomain) {
 */
 
 function handleIconName(url) {
-    const matches = url.match(/^(?:https?:\/\/)?(?:[^@\n]+@)?(?:www\.)?([^:\/\n?]+)/i);
+    const matches = url.match(/^(?:https?:\/\/)?(?:[^@\n]+@)?(?:www\.)?([^\/\n?]+)/i);
     const hostname = (matches && matches[1]) || '';
     let iconName = hostname.replace(/[,\ ]/g, '_');
+    iconName = hostname.replace(/[:]/g, '-');
     let baseName = hostname.split('.')[0];
 
     return [ baseName, iconName ];
