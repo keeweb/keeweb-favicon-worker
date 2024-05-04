@@ -129,16 +129,40 @@ function throwHelp(env, host, subdomain) {
     stackoverflow.com   => stackoverflow
     random-site.org     => random_site
 
+    all private ip addresses are converted to 127.0.0.1 for the
+    sake of storing all self-hosted favicons in a single repo folder.
+
+        - /1/127.0.0.1-8384.ico => Syncthing
+
     @arg        : str url
     @returns    : str
 */
 
 function handleIconName(url) {
+    // https://regex101.com/r/XT9JUZ/2
     const matches = url.match(/^(?:https?:\/\/)?(?:[^@\n]+@)?(?:www\.)?([^\/\n?]+)/i);
-    const hostname = (matches && matches[1]) || '';
-    let iconName = hostname.replace(/[,\ ]/g, '_');
-    iconName = hostname.replace(/[:]/g, '-');
-    let baseName = hostname.split('.')[0];
+    let hostname = (matches && matches[1]) || ''; // xxx.xxx.xxx.xxx:xxxx
+
+    // check if url is local private ip
+    // https://regex101.com/r/k7vc7v/1
+    const urlLocalRegex = new RegExp(
+        /(^localhost.)|(^127\.)|(^192\.168\.)|(^10\.)|(^172\.1[6-9]\.)|(^172\.2[0-9]\.)|(^172\.3[0-1]\.)|(^\[?::1\]?)|(^[fF][cCdD])/,
+        'ig'
+    );
+
+    // match full private ip to be replaced with 127.0.0.1
+    // https://regex101.com/r/goz7vG/2
+    const urlLocalRegexMatch = hostname.match(/(^localhost)|(^127(\.\d{1,3}){3})|(^192\.168(\.\d{1,3}){2})|(^10(\.\d{1,3}){3})|(^172\.1[6-9](\.\d{1,3}){2})|(^172\.2[0-9](\.\d{1,3}){2})|(^172\.3[0-1](\.\d{1,3}){2})|(^\[?::1\]?)|(^[fF][cCdD])/gi);
+
+    // (bool) if ip is private
+    const bIsLocalhost = urlLocalRegex.test(hostname);
+    if (bIsLocalhost) {
+        hostname = hostname.replace(urlLocalRegexMatch, '127.0.0.1');
+    }
+
+    let iconName = hostname.replace(/[,\ ]/g, '_'); // xxx.xxx.xxx.xxx-xxxx
+    iconName = hostname.replace(/[:]/g, '-'); // xxx.xxx.xxx.xxx-xxxx
+    let baseName = hostname.split('.')[0]; // folder letter/
 
     return [ baseName, iconName ];
 }
