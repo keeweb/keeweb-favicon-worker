@@ -112,6 +112,7 @@ function throwHelp(env, host, subdomain) {
         'KeeWeb Favicon Grabber\n\n' +
             `@usage ...... GET ${host}/${subdomain}/domain.com \n` +
             '@repo: ...... https://github.com/keeweb/favicon-worker\n' +
+            '@cdn: ....... https://github.com/keeweb/favicon-cdn\n' +
             '@authors: ... github.com/aetherinox\n' +
             '              github.com/antelle\n' +
             '\nWant an icon removed from our Github repo CDN? Send requests to\n  - keeweb[at]keeweb.info'
