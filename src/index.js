@@ -17,7 +17,7 @@
         - http://favicon.yandex.net/favicon/{DOMAIN}
         - https://api.faviconkit.com/{DOMAIN}/{ICON_SIZE}
         - https://f1.allesedv.com/{DOMAIN}
-        - https://unavatar.now.sh/{DOMAIN{} (rate limited)
+        - https://unavatar.now.sh/{DOMAIN} (rate limited)
 
     Alternative examples
         - https://besticon-demo.herokuapp.com/
