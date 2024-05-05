@@ -113,7 +113,8 @@ function throwHelp(env, host, subdomain) {
             `@usage ...... GET ${host}/${subdomain}/domain.com \n` +
             '@repo: ...... https://github.com/keeweb/favicon-worker\n' +
             '@authors: ... github.com/aetherinox\n' +
-            '              github.com/antelle\n'
+            '              github.com/antelle\n' +
+            '\nWant an icon removed from our Github repo CDN? Send requests to\n  - keeweb[at]keeweb.info'
     );
 }
 
