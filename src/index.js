@@ -324,14 +324,11 @@ export default {
                       browser will also attempt to add in-line styles to center icon.
         */
 
-        const DEFAULT_SECURITY_HEADERS = {
-            'Content-Security-Policy': `default-src 'self' ${headersHost} 'unsafe-inline' https:; img-src 'self';`,
-            'Access-Control-Max-Age': '86400',
-            'Access-Control-Allow-Headers': '*',
-            'Cache-Control': 'max-age=86400'
-        };
-
         const DEFAULT_CORS_HEADERS = {
+            'Content-Security-Policy': `default-src 'self' ${headersHost} 'unsafe-inline' https:; img-src 'self';`,
+            'Cache-Control': 'max-age=86400, s-maxage=3600',
+            'Vary': 'Origin',
+            'Access-Control-Max-Age': '86400',
             'Access-Control-Allow-Origin': '*',
             'Access-Control-Allow-Methods': '*',
             'Access-Control-Allow-Headers': '*'
@@ -593,10 +590,10 @@ export default {
 
             const fetchIcoCdn = await fetch(`${iconUrl}`);
             if (fetchIcoCdn && fetchIcoCdn.status === 200) {
-                const resp = new Response(fetchIcoCdn.body, { headers: fetchIcoCdn.headers });
-
-                Object.keys(DEFAULT_SECURITY_HEADERS).map((name) => {
-                    resp.headers.set(name, DEFAULT_SECURITY_HEADERS[name]);
+                let resp = new Response(fetchIcoCdn.body, {
+                    headers: {
+                        ...DEFAULT_CORS_HEADERS
+                    }
                 });
 
                 return resp;
@@ -625,12 +622,11 @@ export default {
 
                 const fetchIcoPng = await fetch(iconsOverrideIco[iconPath]);
                 if (fetchIcoPng.status === 200) {
-                    const resp = new Response(fetchIcoPng.body, { headers: fetchIcoPng.headers });
-                    Object.keys(DEFAULT_SECURITY_HEADERS).map((name) => {
-                        resp.headers.set(name, DEFAULT_SECURITY_HEADERS[name]);
+                    let resp = new Response(fetchIcoPng.body, {
+                        headers: {
+                            ...DEFAULT_CORS_HEADERS
+                        }
                     });
-                    resp.headers.set('Access-Control-Allow-Origin', '*');
-                    resp.headers.append('Vary', 'Origin');
 
                     return resp;
                 }
@@ -648,11 +644,10 @@ export default {
             console.log(`\x1b[32m[${workerId}]\x1b[0m LOCATE \x1b[33m[svg-override]\x1b[0m \x1b[33m${iconPath}\x1b[0m \x1b[90m|\x1b[0m query by \x1b[32m${clientIp}\x1b[0m`)
 
             let customSvgIcon = new Response(iconsOverrideSvg[iconPath], {
-                headers: { 'content-type': 'image/svg+xml' }
-            });
-
-            Object.keys(DEFAULT_SECURITY_HEADERS).map((name) => {
-                customSvgIcon.headers.set(name, DEFAULT_SECURITY_HEADERS[name]);
+                headers: {
+                    'content-type': 'image/svg+xml',
+                    ...DEFAULT_CORS_HEADERS
+                }
             });
 
             return customSvgIcon;
@@ -735,15 +730,12 @@ export default {
                     ...DEFAULT_CORS_HEADERS
                 }
             });
-
-            resp.headers.set('Cache-Control', 'max-age=86400');
             resp.headers.set('Content-Type', serviceResultIcon.headers.get('content-type'));
-            resp.headers.set('Access-Control-Allow-Origin', '*');
-            resp.headers.append('Vary', 'Origin');
 
             if (favicon.includes(faviconSvg)) {
                 return new Response(decodeURI(favicon.split(faviconSvg)[1]), {
                     headers: { 'content-type': 'image/svg+xml' },
+                    ...DEFAULT_CORS_HEADERS
                 })
             }
 
@@ -774,21 +766,18 @@ export default {
             await newResponse.text();
 
             if (favicon) {
-                let fetchIcon = await fetch(favicon)
+                let fetchIcon = await fetch(favicon);
 
-                if (favicon.includes(faviconSvg)) {
-                    return new Response(decodeURI(favicon.split(faviconSvg)[1]), {
+                const svgHtml = await fetchIcon.text();
+                const svgHtmlResize = svgHtml.replace('<svg',"<svg width='64' height='64'");
+
+                const RespIcon = new Response(svgHtmlResize, fetchIcon, {
                     headers: {
-                        'content-type': 'image/svg+xml',
-                    },
-                    })
-                }
-
-                const RespIcon = new Response(fetchIcon.body)
-                RespIcon.headers.set('Cache-Control', 'max-age=86400');
-                RespIcon.headers.set('Content-Type', fetchIcon.headers.get('content-type'));
-                RespIcon.headers.set('Access-Control-Allow-Origin', '*');
-                RespIcon.headers.append('Vary', 'Origin');
+                        'Content-Type': 'image/svg+xml',
+                        'Accept-Encoding': 'gzip, svgz',
+                        ...DEFAULT_CORS_HEADERS
+                    }
+                });
 
                 return RespIcon
             }
@@ -799,11 +788,10 @@ export default {
         */
 
         let favicoDefault = new Response(favicoDefaultSvg, {
-            headers: { 'content-type': 'image/svg+xml' }
-        });
-
-        Object.keys(DEFAULT_SECURITY_HEADERS).map((name) => {
-            favicoDefault.headers.set(name, DEFAULT_SECURITY_HEADERS[name]);
+            headers: {
+                'content-type': 'image/svg+xml',
+                ...DEFAULT_CORS_HEADERS
+            }
         });
 
         console.log(`\x1b[32m[${workerId}]\x1b[0m LOCATE \x1b[33m[svg-default]\x1b[0m \x1b[31mNo Icon Found\x1b[0m \x1b[90m|\x1b[0m query by \x1b[32m${clientIp}\x1b[0m`)
