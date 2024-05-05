@@ -25,6 +25,7 @@
 */
 
 const serviceApi = `https://s2.googleusercontent.com/s2/favicons?domain={DOMAIN}&sz={ICON_SIZE}`;
+const serviceApiBackup = `https://icons.duckduckgo.com/ip3/{DOMAIN}.ico`;
 const serviceBackup = 'https://raw.githubusercontent.com/keeweb/favicon-cdn/master';
 const faviconSvg = 'data:image/svg+xml,';
 const subdomain = 'favicon';
@@ -697,7 +698,7 @@ export default {
             replacements.hasOwnProperty(phNoDelims) ? replacements[phNoDelims] : phWithDelims
         );
 
-        const serviceQueryUrl = `${_serviceQueryUrl}`;
+        let serviceQueryUrl = `${_serviceQueryUrl}`;
         let serviceResultIcon = await fetch(serviceQueryUrl);
 
         const ct = serviceResultIcon.headers.get('content-type');
@@ -705,6 +706,25 @@ export default {
         if (ct.includes('application') || ct.includes('text')) {
             serviceResultIcon = await fetch(`${serviceQueryUrl}`);
         }
+
+        /*
+            Backup service api url
+
+            this will activate if all previous steps have failed to find a favicon.
+        */
+
+        if (!serviceResultIcon || serviceResultIcon.status !== 200) {
+            const _serviceQueryUrlBackup = serviceApiBackup.replace(/{(\w+)}/g, (phWithDelims, phNoDelims) =>
+                replacements.hasOwnProperty(phNoDelims) ? replacements[phNoDelims] : phWithDelims
+            );
+
+            serviceQueryUrl = `${_serviceQueryUrlBackup}`;
+            serviceResultIcon = await fetch(serviceQueryUrl);
+        }
+
+        /*
+            if a website has a favicon set, then we should have it by now.
+        */
 
         if (serviceResultIcon && serviceResultIcon.status === 200) {
             console.log(`\x1b[32m[${workerId}]\x1b[0m LOCATE \x1b[33m[api]\x1b[0m \x1b[33m${serviceQueryUrl}\x1b[0m \x1b[90m|\x1b[0m query by \x1b[32m${clientIp}\x1b[0m`)
@@ -715,6 +735,7 @@ export default {
                     ...DEFAULT_CORS_HEADERS
                 }
             });
+
             resp.headers.set('Cache-Control', 'max-age=86400');
             resp.headers.set('Content-Type', serviceResultIcon.headers.get('content-type'));
             resp.headers.set('Access-Control-Allow-Origin', '*');
@@ -751,6 +772,26 @@ export default {
                 .transform(response);
 
             await newResponse.text();
+
+            if (favicon) {
+                let fetchIcon = await fetch(favicon)
+
+                if (favicon.includes(faviconSvg)) {
+                    return new Response(decodeURI(favicon.split(faviconSvg)[1]), {
+                    headers: {
+                        'content-type': 'image/svg+xml',
+                    },
+                    })
+                }
+
+                const RespIcon = new Response(fetchIcon.body)
+                RespIcon.headers.set('Cache-Control', 'max-age=86400');
+                RespIcon.headers.set('Content-Type', fetchIcon.headers.get('content-type'));
+                RespIcon.headers.set('Access-Control-Allow-Origin', '*');
+                RespIcon.headers.append('Vary', 'Origin');
+
+                return RespIcon
+            }
         }
 
         /*
