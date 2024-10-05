@@ -1,5 +1,5 @@
 /*
-    KeeWeb Favicon Cloudflare Worker
+    KeeWeb Favicon Cloudflare Worker > v2
 
     @authors    : Aetherinox, github.com/aetherinox
                   Antelle, github.com/antelle
@@ -24,6 +24,7 @@
 
 */
 
+const version =`2.0.1`;
 const serviceApi = `https://s2.googleusercontent.com/s2/favicons?domain={DOMAIN}&sz={ICON_SIZE}`;
 const serviceApiBackup = `https://icons.duckduckgo.com/ip3/{DOMAIN}.ico`;
 const serviceBackup = 'https://raw.githubusercontent.com/keeweb/favicon-cdn/master';
@@ -69,7 +70,6 @@ const mapBlockedIps = new Map([['127.0.0.11:8787', 'Abuse']]);
         When a user requests an icon, it will use the icon specified in the map.
 
         This method supports ico + png
-
             Method Section:     Icon Overrides > Local > Secondary
 
     icon converter:
@@ -109,12 +109,12 @@ const favicoDefaultSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 5
 
 function throwHelp(env, host, subdomain) {
     return new Response(
-        'KeeWeb Favicon Grabber\n\n' +
+        `KeeWeb Favicon Grabber ${version} \n\n` +
             `@usage ...... GET ${host}/${subdomain}/domain.com \n` +
-            '@repo: ...... https://github.com/keeweb/favicon-worker\n' +
-            '@cdn: ....... https://github.com/keeweb/favicon-cdn\n' +
-            '@authors: ... github.com/aetherinox\n' +
-            '              github.com/antelle\n' +
+            '@repo: ...... https://github.com/keeweb/favicon-worker \n' +
+            '@cdn: ....... https://github.com/keeweb/favicon-cdn \n' +
+            '@authors: ... github.com/aetherinox \n' +
+            '              github.com/antelle \n' +
             '\nWant an icon removed from our Github repo CDN? Send requests to\n  - keeweb[at]keeweb.info'
     );
 }
