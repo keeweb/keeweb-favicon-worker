@@ -24,10 +24,16 @@
 
 */
 
-const version =`2.0.1`;
-const serviceApi = `https://s2.googleusercontent.com/s2/favicons?domain={DOMAIN}&sz={ICON_SIZE}`;
-const serviceApiBackup = `https://icons.duckduckgo.com/ip3/{DOMAIN}.ico`;
-const serviceBackup = 'https://raw.githubusercontent.com/keeweb/favicon-cdn/master';
+/*
+    Imports
+*/
+
+import template from './html.js'
+import types from './types.js'
+import clr from './clr.js'
+import { version, author, homepage } from "./package.json";
+import { jsonResp, jsonErr } from './json.js'
+
 /*
     Define > Services
 */
@@ -39,6 +45,11 @@ services['duckduckgo'] = 'https://icons.duckduckgo.com/ip3/{DOMAIN}.ico';
 services['yandex'] = 'http://favicon.yandex.net/favicon/{DOMAIN}';
 services['allesedv'] = 'https://f1.allesedv.com/{DOMAIN}';
 services['faviconkit'] = 'https://api.faviconkit.com/{DOMAIN}/{ICON_SIZE}';
+
+/*
+    Define > General
+*/
+
 const bServiceApiEnabled = true;
 const serviceApi = services['googles2'];
 const serviceApiBackup = services['duckduckgo'];
