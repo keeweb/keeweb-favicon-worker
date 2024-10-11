@@ -334,6 +334,44 @@ async function needThrottle(env, clientIp, now) {
 }
 
 /*
+    daily limit
+
+    each ip address is limited to 500 successful requests per day.
+    does not count toward the limit if throttled
+
+    @arg        : obj env
+    @arg        : str clientIp
+    @arg        : Date now
+    @returns    : bool
+*/
+
+async function dailyLimit(env, clientIp, now) {
+    if (!env.THROTTLE_DAILY_ENABLED) {
+        return false;
+    }
+
+    let bBlock = false;
+
+    const THROTTLE_DAILY_LIMIT = env.THROTTLE_DAILY_LIMIT || 500;
+
+    let getDailyCount = mapDailyLimit.get(clientIp);
+    if (!getDailyCount || isNaN(getDailyCount)) {
+        getDailyCount = 0;
+    }
+
+    if (getDailyCount >= THROTTLE_DAILY_LIMIT) {
+        bBlock = true;
+    }
+
+    if (!bBlock || bBlock === 'false') {
+        getDailyCount++;
+        mapDailyLimit.set(clientIp, getDailyCount);
+    }
+
+    return bBlock;
+}
+
+/*
     converts milliseconds to a human readable string
         01m 23s
 
