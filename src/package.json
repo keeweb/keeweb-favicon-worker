@@ -1,18 +1,20 @@
 {
-    "name": "@keeweb/favicon-worker",
-    "version": "1.0.0",
-    "description": "Get the favicon of a URL",
-    "homepage": "https://github.com/keeweb/favicon-worker",
-    "author": "Aetherinox <adminservx@proton.me>",
+    "name": "@keeweb/keeweb-favicon-worker",
+    "version": "1.2.0",
+    "description": "A Cloudflare worker which fetches favicons for the app KeeWeb",
+    "homepage": "https://github.com/keeweb/keeweb-favicon-worker",
+    "homepage_cdn": "https://github.com/keeweb/keeweb-favicon-cdn",
+    "author": "Aetherinox",
+    "license": "MIT",
     "contributors": [
         {
             "name": "Aetherinox",
-            "email": "adminservx@proton.me",
+            "email": "118329232+Aetherinox@users.noreply.github.com",
             "url": "https://github.com/Aetherinox"
         },
         {
-            "name": "AdminServ",
-            "email": "adminservx@proton.me",
+            "name": "EuropaServ",
+            "email": "118329232+Aetherinox@users.noreply.github.com",
             "url": "https://github.com/AdminServ"
         },
         {
@@ -25,17 +27,17 @@
     },
     "repository": {
         "type": "git",
-        "url": "git+https://github.com/keeweb/favicon-worker.git"
+        "url": "git+https://github.com/keeweb/keeweb-favicon-worker.git"
     },
     "bugs": {
-        "url": "https://github.com/keeweb/favicon-worker/issues"
+        "url": "https://github.com/keeweb/keeweb-favicon-worker/issues"
     },
-    "license": "MIT",
     "keywords": [
         "keeweb",
         "password-manager",
         "favicon",
         "cloudflare",
+        "wrangler",
         "worker"
     ],
     "main": "index.js"
