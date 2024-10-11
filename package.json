@@ -1,19 +1,21 @@
 {
-    "name": "@keeweb/favicon-worker-wrangler",
+    "name": "@keeweb/keeweb-favicon-wrangler",
     "version": "1.0.0",
-    "description": "Get the favicon of a URL",
-    "homepage": "https://github.com/keeweb/favicon-worker",
-    "author": "Aetherinox <adminservx@proton.me>",
+    "description": "A favicon cloudflare worker for KeeWeb.",
+    "homepage": "https://github.com/keeweb/keeweb-favicon-worker",
+    "homepage_cdn": "https://github.com/keeweb/keeweb-favicon-cdn",
+    "author": "Aetherinox",
+    "license": "MIT",
     "contributors": [
         {
             "name": "Aetherinox",
-            "email": "adminservx@proton.me",
+            "email": "118329232+Aetherinox@users.noreply.github.com",
             "url": "https://github.com/Aetherinox"
         },
         {
-            "name": "AdminServ",
-            "email": "adminservx@proton.me",
-            "url": "https://github.com/AdminServ"
+            "name": "EuropaServ",
+            "email": "118329232+Aetherinox@users.noreply.github.com",
+            "url": "https://github.com/EuropaServ"
         },
         {
             "name": "Antelle",
@@ -23,12 +25,14 @@
     "private": true,
     "repository": {
         "type": "git",
-        "url": "git+https://github.com/keeweb/favicon-worker.git"
+        "url": "git+https://github.com/keeweb/keeweb-favicon-worker.git"
     },
     "bugs": {
-        "url": "https://github.com/keeweb/favicon-worker/issues"
+        "url": "https://github.com/keeweb/keeweb-favicon-workerr/issues"
     },
-    "license": "MIT",
+    "build": {
+        "appId": "com.keeweb.cfw.id"
+    },
     "keywords": [
         "keeweb",
         "password-manager",
@@ -40,22 +44,28 @@
         "deploy": "wrangler deploy",
         "dev": "wrangler dev",
         "start": "wrangler dev",
+        "login": "wrangler login",
         "pretty": "prettier --write '**/*.{js,json}'",
         "contrib:add": "all-contributors add",
         "contrib:generate": "all-contributors generate",
-        "init": "node init.js",
-        "init:generate": "node init.js generate",
-        "env-init": "npx --quiet env-cmd --no-override node init.js",
-        "env-uuid": "npx --quiet env-cmd --no-override node init.js uuid",
-        "env-guid": "npx --quiet env-cmd --no-override node init.js guid",
-        "env-version": "node -p require('./package.json').version;"
+        "root": "node root.js",
+        "root:generate": "node root.js generate",
+        "env:root": "npx --quiet env-cmd --no-override node root.js",
+        "env:uuid": "npx --quiet env-cmd --no-override node root.js uuid",
+        "env:guid": "npx --quiet env-cmd --no-override node root.js guid",
+        "env:version": "node -p require('./package.json').version;"
     },
     "devDependencies": {
-        "rollup-plugin-node-polyfills": "^0.2.1",
-        "wrangler": "^3.53.0",
-        "prettier": "^3.2.5",
+        "@types/uuid": "^10.0.0",
         "all-contributors-cli": "^6.26.1",
-        "@types/uuid": "^9.0.8",
-        "uuid": "^9.0.1"
+        "prettier": "^3.3.3",
+        "rollup-plugin-node-polyfills": "^0.2.1",
+        "uuid": "^10.0.0",
+        "wrangler": "^3.80.2"
+    },
+    "overrides": {
+        "wrangler": {
+            "fill-range": "~7.1.1"
+        }
     }
 }
