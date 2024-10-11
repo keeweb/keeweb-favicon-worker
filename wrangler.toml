@@ -1,24 +1,91 @@
-# --------------------------------------------------
-#   Keeweb Favicon Cloudflare Worker
-# --------------------------------------------------
+# #
+#   KeeWeb Favicon Cloudflare Worker
+# #
 
 name = "favicon"
 main = "src/index.js"
-compatibility_date = "2024-04-19"
-workers_dev = true
-node_compat = true
+compatibility_flags = [ "nodejs_compat" ]
+compatibility_date = "2024-09-23"
 
-# The rate limiting API is in open beta.
+# #
+#   The rate limiting API is in open beta.
+#   https://developers.cloudflare.com/workers/runtime-apis/bindings/rate-limit/
+# #
+
 [[unsafe.bindings]]
-name = "keeweb"
-type = "ratelimit"
-namespace_id = "1001"
-simple = { limit = 30, period = 60 }
+    name = "favicon"
+    type = "ratelimit"
+    namespace_id = "1001"
+    simple = { limit = 30, period = 60 }
 
-# env variables
-[vars]
-THROTTLE_DELAY_MS = 2000
-THROTTLE_AGGRESSIVE = true
-THROTTLE_AGGRESSIVE_PUNISH_MS = 5000
-THROTTLE_DAILY_ENABLED = true
-THROTTLE_DAILY_LIMIT = 400
+# #
+#   Environment - Production
+#   For production environment, use '-e production'
+# #
+
+[env.production]
+    name = "favicon"
+    workers_dev = true
+
+    # #
+    #   Environment - Production - Vars
+    # #
+
+    [env.production.vars]
+        ENVIRONMENT = "production"
+        THROTTLE_DELAY_MS = 500
+        THROTTLE_AGGRESSIVE = false
+        THROTTLE_AGGRESSIVE_PUNISH_MS = 5000
+        THROTTLE_DAILY_ENABLED = false
+        THROTTLE_DAILY_LIMIT = 2000
+
+    # #
+    #   The rate limiting API is in open beta.
+    #   https://developers.cloudflare.com/workers/runtime-apis/bindings/rate-limit/
+    # #
+
+    [[env.production.unsafe.bindings]]
+        name = "favicon"
+        type = "ratelimit"
+        namespace_id = "1001"
+        simple = { limit = 30, period = 60 }
+
+# #
+#   Environment - Development
+#   For dev environment, use '-e dev'
+# #
+
+[env.dev]
+    name = "favicon"
+    workers_dev = true
+
+    # #
+    #   Environment - Development - Vars
+    # #
+
+    [env.dev.vars]
+        ENVIRONMENT = "dev"
+        THROTTLE_DELAY_MS = 500
+        THROTTLE_AGGRESSIVE = true
+        THROTTLE_AGGRESSIVE_PUNISH_MS = 5000
+        THROTTLE_DAILY_ENABLED = true
+        THROTTLE_DAILY_LIMIT = 2000
+
+    # #
+    #   The rate limiting API is in open beta.
+    #   https://developers.cloudflare.com/workers/runtime-apis/bindings/rate-limit/
+    # #
+
+    [[env.dev.unsafe.bindings]]
+        name = "favicon"
+        type = "ratelimit"
+        namespace_id = "1001"
+        simple = { limit = 30, period = 60 }
+
+# #
+#   Logs
+#   https://developers.cloudflare.com/workers/observability/logs/
+# #
+
+[observability]
+    enabled = true
