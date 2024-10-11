@@ -52,7 +52,7 @@
     },
     "devDependencies": {
         "rollup-plugin-node-polyfills": "^0.2.1",
-        "wrangler": "^3.53.0",
+        "wrangler": "^3.80.3",
         "prettier": "^3.2.5",
         "all-contributors-cli": "^6.26.1",
         "@types/uuid": "^9.0.8",
