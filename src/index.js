@@ -173,7 +173,7 @@ function handleIconName(url) {
 }
 
 /*
-    daily limit
+    Get Params
 
     each ip address is limited to 500 successful requests per day.
     does not count toward the limit if throttled
@@ -184,23 +184,24 @@ function handleIconName(url) {
     @returns    : bool
 */
 
-async function dailyLimit(env, clientIp, now) {
-    if (!env.THROTTLE_DAILY_ENABLED) {
-        return false;
-    }
+function getParams(url, name) {
+    name = name.replace(/[\[\]]/g, '\\$&')
+    name = name.replace(/\//g, '')
+    var regex = new RegExp('[?&]' + name + '(=([^&#]*)|&|#|$)'),
+        results = regex.exec(url)
 
-    let bBlock = false;
-
-    const THROTTLE_DAILY_LIMIT = env.THROTTLE_DAILY_LIMIT || 500;
-
+    if (!results) return null
+    else if (!results[2]) return ''
+    else if (results[2]) {
+        results[2] = results[2].replace(/\//g, '')
     let getDailyCount = mapDailyLimit.get(clientIp);
     if (!getDailyCount || isNaN(getDailyCount)) {
         getDailyCount = 0;
     }
 
-    if (getDailyCount >= THROTTLE_DAILY_LIMIT) {
+    return decodeURIComponent(results[2].replace(/\+/g, ' '));
         bBlock = true;
-    }
+}
 
     if (!bBlock || bBlock === 'false') {
         getDailyCount++;
@@ -439,7 +440,10 @@ export default {
             https://x.x.0.1:8787/favicon/       returns empty string
         */
 
-        let searchDomain = requestURL.pathname.replace(`/${subdomain}/`, '');
+        let paramDomain = hostFull.pathname;
+        if ( env.ENVIRONMENT === "dev" ) {
+            Logger.var(env, 'paramDomain', `${paramDomain}`)
+        }
 
         /*
             throw help menu if searchDomain:
@@ -782,7 +786,19 @@ export default {
                 })
             }
 
-            return resp;
+                if (paramFormat === 'json') {
+                    const url = `${serviceQueryUrl}`
+                    const size = `${iconSize}`
+                    const client = `${clientIp}`
+                    const status = `${serviceResultIcon.status}`
+
+                    return jsonResp({ url, size, client, status }, true)
+                }
+                else
+                {
+                    return resp;
+                }
+            }
         }
 
         /*
