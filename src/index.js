@@ -127,6 +127,28 @@ const favicoDefaultSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 5
 </svg>`;
 
 /*
+    Logger
+*/
+
+const Logger = function(name) {
+	this.name = name;
+};
+
+Logger.dev = function(env, id, a) {
+    if (env.ENVIRONMENT === "dev")
+	    console.log(`${clr.green}[${workerId}]${clr.reset} ${id} ${a}`);
+    else
+        console.log(`${clr.green}[${workerId}]${clr.reset} ${id} ${a}`);
+}
+
+Logger.var = function(env, id, a ) {
+    if (env.ENVIRONMENT === "dev")
+        console.log(`${clr.green}[${workerId}]${clr.reset} ${clr.lgrey}[var:${clr.yellow}${id}${clr.lgrey}]${clr.reset} ${a}${clr.reset}`)
+    else
+        console.log(`[${workerId}] [var:${id}] ${a}`)
+}
+
+/*
     throw general help message
 
     @arg        : obj env
@@ -520,9 +542,19 @@ export default {
             127.0.0.11:8787 for testing
         */
 
-        if (mapBlockedIps.has(clientIp)) {
-            const reason = mapBlockedIps.get(clientIp) || 'Blocked';
-            console.log(`\x1b[32m[${workerId}]\x1b[0m BLOCK \x1b[33m[ip]\x1b[0m detected for \x1b[31m${clientIp}\x1b[0m \x1b[90m|\x1b[0m Reason: \x1b[33m${reason}\x1b[0m \x1b[90m|\x1b[0m \x1b[33mForbidden\x1b[0m`)
+        if (mapBlacklist.has(clientIp)) {
+            const reason = mapBlacklist.get(clientIp) || 'Blocked';
+
+            if ( env.ENVIRONMENT === "dev" ) {
+                console.log(
+                    `\x1b[32m[${workerId}]\x1b[0m BLOCK \x1b[33m[ip]\x1b[0m detected for \x1b[31m${clientIp}\x1b[0m \x1b[90m|\x1b[0m Reason: \x1b[33m${reason}\x1b[0m \x1b[90m|\x1b[0m \x1b[33mForbidden\x1b[0m`
+                );
+            } else {
+                console.log(
+                    `[${workerId}] BLOCK [ip] detected for ${clientIp} | Reason: ${reason} | Forbidden`
+                );
+            }
+
             return new Response(
                 `403 forbidden – you cannot access this service from ${clientIp}: Reason: ${reason}`,
                 { status: 403, reason: reason }
@@ -533,10 +565,22 @@ export default {
             Block user-agents containing 'bot'
         */
 
-        const userAgent = request.headers.get('User-Agent') || '';
+        const userAgent = req.headers.get('User-Agent') || '';
         if (userAgent.includes('bot')) {
-            console.log(`\x1b[32m[${workerId}]\x1b[0m LIMIT \x1b[33m[user-agent-bot]\x1b[0m detected for \x1b[31m${clientIp}\x1b[0m \x1b[90m|\x1b[0m \x1b[33mForbidden\x1b[0m`)
-            return new Response(`403 - Block User Agent containing bot`, { status: 403 });
+
+            if ( env.ENVIRONMENT === "dev" ) {
+                console.log(
+                    `\x1b[32m[${workerId}]\x1b[0m LIMIT \x1b[33m[user-agent-bot]\x1b[0m detected for \x1b[31m${clientIp}\x1b[0m \x1b[90m|\x1b[0m \x1b[33mForbidden\x1b[0m`
+                );
+            } else {
+                console.log(
+                    `[${workerId}] LIMIT [user-agent-bot] detected for ${clientIp} | Forbidden`
+                );
+            }
+
+            return new Response(
+                jsonErr(`403 forbidden – Block User Agent containing bot`, 403, true)
+            );
         }
 
         /*
@@ -549,7 +593,16 @@ export default {
         const nextAllowed = msToHuman(tsNextAllowed - now);
 
         if (bThrottle) {
-            console.log(`\x1b[32m[${workerId}]\x1b[0m LIMIT \x1b[33m[throttle]\x1b[0m exeeded by \x1b[31m${clientIp}\x1b[0m \x1b[90m|\x1b[0m Next allowed in \x1b[33m${nextAllowed}\x1b[0m \x1b[90m|\x1b[0m daily total: \x1b[33m${userDailyLimit}\x1b[0m`);
+            if ( env.ENVIRONMENT === "dev" ) {
+                console.log(
+                    `\x1b[32m[${workerId}]\x1b[0m LIMIT \x1b[33m[throttle]\x1b[0m exeeded by \x1b[31m${clientIp}\x1b[0m \x1b[90m|\x1b[0m Next allowed in \x1b[33m${nextAllowed}\x1b[0m \x1b[90m|\x1b[0m daily total: \x1b[33m${userDailyLimit}\x1b[0m`
+                );
+            } else {
+                console.log(
+                    `[${workerId}] LIMIT [throttle] exeeded by ${clientIp} | Next allowed: ${nextAllowed} | Daily total: ${userDailyLimit}`
+                );
+            }
+
             return new Response(
                 `429 - Too many requests for ${clientIp}. must wait ${nextAllowed}. You have made ${userDailyLimit} total requests for the day.`,
                 { status: 429 }
@@ -563,7 +616,16 @@ export default {
         let bHitDailyLimit = await dailyLimit(env, clientIp, now);
 
         if (bHitDailyLimit) {
-            console.log(`\x1b[32m[${workerId}]\x1b[0m LIMIT \x1b[33m[daily]\x1b[0m \x1b[33m${userDailyLimit}\x1b[0m exeeded by \x1b[31m${clientIp}\x1b[0m`);
+            if ( env.ENVIRONMENT === "dev" ) {
+                console.log(
+                    `\x1b[32m[${workerId}]\x1b[0m LIMIT \x1b[33m[daily]\x1b[0m \x1b[33m${userDailyLimit}\x1b[0m exeeded by \x1b[31m${clientIp}\x1b[0m`
+                );
+            } else {
+                console.log(
+                    `[${workerId}] LIMIT [daily] ${userDailyLimit} exeeded by ${clientIp}`
+                );
+            }
+
             return new Response(
                 `429 - You have hit your daily limit of ${userDailyLimit} requests for ${clientIp}`,
                 { status: 429 }
@@ -581,7 +643,15 @@ export default {
         */
 
         if (!success) {
-            console.log(`\x1b[32m[${workerId}]\x1b[0m LIMIT \x1b[33m[cloudflare]\x1b[0m detected for \x1b[31m${clientIp}\x1b[0m \x1b[90m|\x1b[0m \x1b[33mToo Many Requests\x1b[0m`)
+            if ( env.ENVIRONMENT === "dev" ) {
+                console.log(
+                    `\x1b[32m[${workerId}]\x1b[0m LIMIT \x1b[33m[cloudflare]\x1b[0m detected for \x1b[31m${clientIp}\x1b[0m \x1b[90m|\x1b[0m \x1b[33mToo many requests\x1b[0m`
+                );
+            } else {
+                console.log(
+                    `[${workerId}] LIMIT [cloudflare] detected for ${clientIp} | Too many requests`
+                );
+            }
             return new Response(`429 Too Many Requests – rate limit exceeded for ${clientIp}`, {
                 status: 429
             });
@@ -616,7 +686,16 @@ export default {
 
         if (!response) {
             response = await fetch(targetURL.origin, init).catch(() => {
-                console.log(`\x1b[32m[${workerId}]\x1b[0m FETCH failed to get: \x1b[31m${targetURL.origin}\x1b[0m`)
+                if ( env.ENVIRONMENT === "dev" ) {
+                    console.log(
+                        `\x1b[32m[${workerId}]\x1b[0m CACHE \x1b[33m[worker]\x1b[0m \x1b[31mFailed to find icon for \x1b[32m${targetURL.origin}\x1b[0m`
+
+                    );
+                } else {
+                    console.log(
+                        `[${workerId}] CACHE [worker] Failed to find icon for ${targetURL.origin}`
+                    );
+                }
             });
         }
 
@@ -659,7 +738,15 @@ export default {
 
         const iconRequest = new Request(iconUrl);
         if (iconRequest) {
-            console.log(`\x1b[32m[${workerId}]\x1b[0m LOCATE \x1b[33m[cdn]\x1b[0m \x1b[33m${iconUrl}\x1b[0m \x1b[90m|\x1b[0m query by \x1b[32m${clientIp}\x1b[0m`)
+            if ( env.ENVIRONMENT === "dev" ) {
+                console.log(
+                    `\x1b[32m[${workerId}]\x1b[0m CHECK \x1b[33m[cdn]\x1b[0m \x1b[33m${iconUrl}\x1b[0m \x1b[90m|\x1b[0m query by \x1b[32m${clientIp}\x1b[0m`
+                );
+            } else {
+                console.log(
+                    `[${workerId}] CHECK [cdn] ${iconUrl} | query by ${clientIp}`
+                );
+            }
 
             const fetchIcoCdn = await fetch(`${iconUrl}`);
             if (fetchIcoCdn && fetchIcoCdn.status === 200) {
@@ -691,7 +778,15 @@ export default {
             const ext = iconsOverrideIco[iconPath].split(/[#?]/)[0].split('.').pop().trim();
 
             if (ext === 'png' || ext === 'ico') {
-                console.log(`\x1b[32m[${workerId}]\x1b[0m LOCATE \x1b[33m[ico-png-override]\x1b[0m \x1b[33m${iconPath}\x1b[0m \x1b[90m|\x1b[0m query by \x1b[32m${clientIp}\x1b[0m`)
+                if ( env.ENVIRONMENT === "dev" ) {
+                    console.log(
+                        `\x1b[32m[${workerId}]\x1b[0m FOUND \x1b[33m[ico-png-override]\x1b[0m \x1b[33m${iconPath}\x1b[0m \x1b[90m|\x1b[0m query by \x1b[32m${clientIp}\x1b[0m`
+                    );
+                } else {
+                    console.log(
+                        `[${workerId}] FOUND [ico-png-override] ${iconPath} | query by ${clientIp}`
+                    );
+                }
 
                 const fetchIcoPng = await fetch(iconsOverrideIco[iconPath]);
                 if (fetchIcoPng.status === 200) {
@@ -714,7 +809,15 @@ export default {
         */
 
         if (iconsOverrideSvg[iconPath]) {
-            console.log(`\x1b[32m[${workerId}]\x1b[0m LOCATE \x1b[33m[svg-override]\x1b[0m \x1b[33m${iconPath}\x1b[0m \x1b[90m|\x1b[0m query by \x1b[32m${clientIp}\x1b[0m`)
+            if ( env.ENVIRONMENT === "dev" ) {
+                console.log(
+                    `\x1b[32m[${workerId}]\x1b[0m FOUND \x1b[33m[svg-override]\x1b[0m \x1b[33m${iconPath}\x1b[0m \x1b[90m|\x1b[0m query by \x1b[32m${clientIp}\x1b[0m`
+                );
+            } else {
+                console.log(
+                    `[${workerId}] FOUND [svg-override] ${iconPath} | query by ${clientIp}`
+                );
+            }
 
             let customSvgIcon = new Response(iconsOverrideSvg[iconPath], {
                 headers: {
@@ -788,7 +891,16 @@ export default {
 
             serviceQueryUrl = `${_serviceQueryUrlBackup}`;
             serviceResultIcon = await fetch(serviceQueryUrl);
-        }
+                if ( env.ENVIRONMENT === "dev" ) {
+                    console.log(
+                        `\x1b[32m[${workerId}]\x1b[0m FIND \x1b[33m[api-backup]\x1b[0m \x1b[33m${serviceQueryUrl}\x1b[0m \x1b[90m|\x1b[0m query by \x1b[32m${clientIp}\x1b[0m`
+                    );
+                } else {
+                    console.log(
+                        `[${workerId}] FIND [api-backup] ${serviceQueryUrl} | query by ${clientIp}`
+                    );
+                }
+            }
 
         /*
             if a website has a favicon set, then we should have it by now.
@@ -796,6 +908,15 @@ export default {
 
         if (serviceResultIcon && serviceResultIcon.status === 200) {
             console.log(`\x1b[32m[${workerId}]\x1b[0m LOCATE \x1b[33m[api]\x1b[0m \x1b[33m${serviceQueryUrl}\x1b[0m \x1b[90m|\x1b[0m query by \x1b[32m${clientIp}\x1b[0m`)
+                if ( env.ENVIRONMENT === "dev" ) {
+                    console.log(
+                        `\x1b[32m[${workerId}]\x1b[0m FOUND \x1b[33m[api]\x1b[0m \x1b[33m${serviceQueryUrl}\x1b[0m \x1b[90m|\x1b[0m query by \x1b[32m${clientIp}\x1b[0m`
+                    );
+                } else {
+                    console.log(
+                        `[${workerId}] FOUND [api] ${serviceQueryUrl} | query by ${clientIp}`
+                    );
+                }
 
             const resp = new Response(serviceResultIcon.body, {
                 headers: {
