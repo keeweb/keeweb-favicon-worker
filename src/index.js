@@ -751,37 +751,136 @@ export default {
 
         if (response) {
             let newResponse = new HTMLRewriter()
-                .on('link[rel*="icon"]', {
-                    async element(element) {
-                        if (element.getAttribute('rel') === 'mask-icon' || favicon) return;
-                        favicon = element.getAttribute('href');
+            .on('link[rel*="icon"]', {
+                element(element) {
+                    favicon = element.getAttribute('href');
+                    if (favicon.startsWith('/')) {
                         if (favicon.startsWith('/')) {
-                            const prefix = favicon.startsWith('//') ? 'https:' : targetURL.origin;
-                            favicon = prefix + favicon;
-                        } else if (!favicon.startsWith('http')) {
-                            favicon = targetURL.origin + '/' + favicon;
-                        }
+                        const prefix = favicon.startsWith('//') ? 'https:' : targetURL.origin
+                        favicon = prefix + favicon
+                    } else if (!favicon.startsWith('http')) {
+                        favicon = targetURL.origin + '/' + favicon
                     }
-                })
-                .transform(response);
+                }
+            });
+            // .transform(response);
 
-            await newResponse.text();
+            // must be called before getting favicon variable
+            const _text = await newResponse.transform(response).text();
 
+            // favicon returns ico and svg url
             if (favicon) {
-                let fetchIcon = await fetch(favicon);
 
-                const svgHtml = await fetchIcon.text();
-                const svgHtmlResize = svgHtml.replace('<svg',"<svg width='64' height='64'");
+                let iconPop = favicon.split('.').pop();     // everything after last period (plus period) -- ex:  .ico
+                let iconExt = iconPop.substring(0,3);       // filter file extension
 
-                const RespIcon = new Response(svgHtmlResize, fetchIcon, {
-                    headers: {
-                        'Content-Type': 'image/svg+xml',
-                        'Accept-Encoding': 'gzip, svgz',
-                        ...DEFAULT_CORS_HEADERS
+                /*
+                    HTML Scanner - ICO
+                    test with http://127.0.0.1:8787/microsoft.com
+                */
+
+                if ( iconExt === "ico") {
+                    const fetchIcoPng = await fetch(favicon);
+                    if (fetchIcoPng.status === 200) {
+                        let resp = new Response(fetchIcoPng.body, {
+                            headers: {
+                                ...DEFAULT_CORS_HEADERS
+                            }
+                        });
+
+                        if ( env.ENVIRONMENT === "dev" ) {
+                            console.log(
+                                `\x1b[32m[${workerId}]\x1b[0m FOUND \x1b[33m[html-scrape-ico]\x1b[0m \x1b[33m${favicon}\x1b[0m \x1b[90m|\x1b[0m query by \x1b[32m${clientIp}\x1b[0m`
+                            );
+                        } else {
+                            console.log(
+                                `[${workerId}] FOUND [html-scrape-ico] ${favicon} | query by ${clientIp}`
+                            );
+                        }
+
+                        return resp;
                     }
-                });
 
-                return RespIcon
+                /*
+                    HTML Scanner - svg
+                    test with http://127.0.0.1:8787/github.com
+                */
+
+                } else if ( iconExt === "svg") {
+                    const fetchIcon = await fetch(favicon);
+                    let svgHtml = await fetchIcon.text();
+                    svgHtml = svgHtml.replace(/(width\s*=\s*["'])[0-9]+(["'])/ig, "width=\"" + iconSize + "\"");
+                    svgHtml = svgHtml.replace(/(height\s*=\s*["'])[0-9]+(["'])/ig, "height=\"" + iconSize + "\"");
+
+                    const RespIcon = new Response(svgHtml, {
+                        headers: {
+                            'Content-Type': types.svg,
+                            'Accept-Encoding': 'gzip, svgz',
+                            ...DEFAULT_CORS_HEADERS
+                        }
+                    });
+
+                    if ( env.ENVIRONMENT === "dev" ) {
+                        console.log(
+                            `\x1b[32m[${workerId}]\x1b[0m FOUND \x1b[33m[html-scrape-svg]\x1b[0m \x1b[33m${favicon}\x1b[0m \x1b[90m|\x1b[0m query by \x1b[32m${clientIp}\x1b[0m`
+                        );
+                    } else {
+                        console.log(
+                            `[${workerId}] FOUND [html-scrape-svg] ${favicon} | query by ${clientIp}`
+                        );
+                    }
+
+                    return RespIcon;
+                } else if ( iconExt === "png") {
+                    const fetchIcoPng = await fetch(favicon);
+                    if (fetchIcoPng.status === 200) {
+                        let resp = new Response(fetchIcoPng.body, {
+                            headers: {
+                                ...DEFAULT_CORS_HEADERS
+                            }
+                        });
+
+                        if ( env.ENVIRONMENT === "dev" ) {
+                            console.log(
+                                `\x1b[32m[${workerId}]\x1b[0m FOUND \x1b[33m[html-scrape-png]\x1b[0m \x1b[33m${favicon}\x1b[0m \x1b[90m|\x1b[0m query by \x1b[32m${clientIp}\x1b[0m`
+                            );
+                        } else {
+                            console.log(
+                                `[${workerId}] FOUND [html-scrape-png] ${favicon} | query by ${clientIp}`
+                            );
+                        }
+
+                        return resp;
+                    }
+                }
+            } else {
+                /*
+                    Manual Search
+                    checks the domain to see if favicon.ico exists
+                */
+
+                const fetchManualIcon = `${targetURL.origin}/favicon.ico`
+                const fetchManualCdn = await fetch(`${fetchManualIcon}`);
+                if (fetchManualCdn && fetchManualCdn.status === 200) {
+                    let resp = new Response(fetchManualCdn.body, {
+                        headers: {
+                            ...DEFAULT_CORS_HEADERS
+                        }
+                    });
+
+                    if ( env.ENVIRONMENT === "dev" ) {
+                        console.log(
+                            `\x1b[32m[${workerId}]\x1b[0m FOUND \x1b[33m[html-scrape-favicon]\x1b[0m \x1b[33m${favicon}\x1b[0m \x1b[90m|\x1b[0m query by \x1b[32m${clientIp}\x1b[0m`
+                        );
+                    } else {
+                        console.log(
+                            `[${workerId}] FOUND [html-scrape-favicon] ${favicon} | query by ${clientIp}`
+                        );
+                    }
+
+                    return resp;
+                }
+
             }
         }
 
@@ -791,12 +890,20 @@ export default {
 
         let favicoDefault = new Response(favicoDefaultSvg, {
             headers: {
-                'content-type': 'image/svg+xml',
+                'content-type': types.svg,
                 ...DEFAULT_CORS_HEADERS
             }
         });
 
-        console.log(`\x1b[32m[${workerId}]\x1b[0m LOCATE \x1b[33m[svg-default]\x1b[0m \x1b[31mNo Icon Found\x1b[0m \x1b[90m|\x1b[0m query by \x1b[32m${clientIp}\x1b[0m`)
+        if ( env.ENVIRONMENT === "dev" ) {
+            console.log(
+                `\x1b[32m[${workerId}]\x1b[0m FOUND \x1b[33m[svg-default]\x1b[0m \x1b[31mAssigning default - no icon found\x1b[0m \x1b[90m|\x1b[0m query by \x1b[32m${clientIp}\x1b[0m`
+            );
+        } else {
+            console.log(
+                `[${workerId}] FOUND [svg-default] Assigning default - no icon found | query by ${clientIp}`
+            );
+        }
 
         return favicoDefault;
     }
