@@ -31,6 +31,8 @@ const serviceBackup = 'https://raw.githubusercontent.com/keeweb/favicon-cdn/mast
 const faviconSvg = 'data:image/svg+xml,';
 const subdomain = 'favicon';
 const workerId = 'keeweb-worker';
+let bSubRoute = true;
+const route = 'favicon';
 
 /*
     Maps
@@ -308,14 +310,47 @@ export default {
         @returns    : Response
     */
 
-    async fetch(request, env, ctx) {
+    async fetch(req, env, ctx) {
         const init = {
-            headers: { 'content-type': 'text/html;charset=UTF-8' },
+            headers: { 'content-type': types.html },
             redirect: 'follow'
         };
 
-        // returns base domain without any params
-        const headersHost = request.headers.get('host') || '';
+        /*
+            Show 'welcome' message if request url is the base domain using regex.
+                acceptable domains:
+                    - 127.0.0.1 								(development)
+                    - favicon.aetherinox.workers.dev 			(development)
+                    - favicon.keeweb.workers.dev 				(production)
+
+            this triggers if the user did not append ?url=domain.com to the request url.
+        */
+
+        const hostRegex = new RegExp(/^(https?:\/\/)?(127.0.0.1:(\d+)|keeweb.aetherinox.workers.dev|favicon.aetherinox.workers.dev|favicon.keeweb.workers.dev)\/(?:favicon.ico)?$/,'ig');
+
+        /*
+            return all of the values we'll need
+        */
+
+        const host = req.headers.get('host') || '';                     // 127.0.0.1:8787
+        const hostFull = new URL(req.url);                              // http://127.0.0.1:8787/
+        const hostBase = bSubRoute ? `${host}/${route}` : `${host}`     // 127.0.0.1:8787/favicon
+        const hostAbso = `${hostFull}${route}`                          // http://127.0.0.1:8787//favicon
+        const bIsHostBase = hostRegex.test(hostFull);                   // triggered only when base URL is used without arguments
+
+        if ( env.ENVIRONMENT === "dev" ) {
+            Logger.var(env, 'host', `${host}`)
+            Logger.var(env, 'hostFull', `${hostFull}`)
+            Logger.var(env, 'hostBase', `${hostBase}`)
+            Logger.var(env, 'hostAbso', `${hostAbso}`)
+            Logger.var(env, 'bIsHostBase', `${bIsHostBase}`)
+        }
+
+        /*
+            only returns when `?format` found in url
+        */
+
+        const paramFormat = getParams(req.url, 'format')
 
         /*
             Security Headers
@@ -366,8 +401,8 @@ export default {
             default page
         */
 
-        if (bIsBaseOnly || requestURL === headersHost) {
-            return throwHelp(env, headersHost, subdomain);
+        if (bIsHostBase || hostFull === host ) {
+            return throwHelp(env, hostAbso, host);
         }
 
         /*
@@ -386,12 +421,12 @@ export default {
             help info will be displayed in the next step.
         */
 
-        const regexStartWith = new RegExp(`^\/${subdomain}\/?(.*)$`, 'igm');
-        const bStartsWith = regexStartWith.test(requestURL.pathname);
+        const regexStartWith = new RegExp(`^\/${route}\/?(.*)$`, 'igm');
+        const bStartsWith = regexStartWith.test(hostFull.pathname);
 
-        if (!bStartsWith) {
-            return new Response(
-                `404 not found – could not find a valid domain. Must use ${headersHost}/${subdomain}/domain.com`,
+        // only needed if subRoute enabled
+        if (bSubRoute && !bStartsWith) {
+            return jsonErr(`404 not found – could not find a valid domain. Must use ${hostBase}/domain.com`, 404, true)
                 { status: 404, reason: 'domain not found' }
             );
         }
@@ -412,8 +447,14 @@ export default {
                 - contains only /subdomain
         */
 
-        if (!searchDomain || searchDomain === `/${subdomain}`) {
-            return throwHelp(env, headersHost, subdomain);
+        if (bSubRoute) {
+            paramDomain = hostFull.pathname.replace(`/${route}/`, '');
+            if (!paramDomain || paramDomain === `/${route}`) {
+                return throwHelp(env, hostBase, host);
+            }
+        } else {
+            // clean up forward slash
+            paramDomain = hostFull.pathname.replace(`/`, '');
         }
 
         /*
