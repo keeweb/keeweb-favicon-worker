@@ -251,13 +251,18 @@ function getParams(url, name) {
         bBlock = true;
 }
 
-    if (!bBlock || bBlock === 'false') {
-        getDailyCount++;
+/*
+    Service API > Get Random
         mapDailyLimit.set(clientIp, getDailyCount);
     }
 
-    return bBlock;
-}
+    @usage          serviceRand(services)
+*/
+
+const serviceRand = function (obj) {
+  const keys = Object.keys(obj);
+  return obj[keys[Math.floor(keys.length * Math.random())]];
+};
 
 /*
     Method > Throttle
