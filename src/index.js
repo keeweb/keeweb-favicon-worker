@@ -153,20 +153,31 @@ Logger.var = function(env, id, a ) {
 
     @arg        : obj env
     @arg        : str host
-    @arg        : str subdomain
+    @arg        : str route
     @returns    : Response
 */
 
-function throwHelp(env, host, subdomain) {
-    return new Response(
-        `KeeWeb Favicon Grabber ${version} \n\n` +
-            `@usage ...... GET ${host}/${subdomain}/domain.com \n` +
-            '@repo: ...... https://github.com/keeweb/favicon-worker \n' +
-            '@cdn: ....... https://github.com/keeweb/favicon-cdn \n' +
-            '@authors: ... github.com/aetherinox \n' +
-            '              github.com/antelle \n' +
-            '\nWant an icon removed from our Github repo CDN? Send requests to\n  - keeweb[at]keeweb.info'
-    );
+function throwHelp(env, hostAbso, host) {
+    let out = `KeeWeb Favicon Grabber v${version} \n\n`;
+
+    if ( env.ENVIRONMENT === "dev" ) {
+        console.log("Environment Dump");
+        console.log(env)
+    }
+
+    out += `@usage ...... GET ${hostAbso}/domain.com \n`
+    out += `              GET ${hostAbso}/domain.com/ICON_SIZE \n`
+    out += `@repo: ...... ${homepage} \n`
+    out += `@cdn: ....... ${uriCDN} \n`
+    out += `@authors: ... ${author} \n`
+    out += `              Antelle \n`
+    out += `@build: ..... ${env.ENVIRONMENT} \n`
+    out += `\nWant an icon removed from our Github repo CDN? Send requests to\n  - keeweb[at]keeweb.info \n`
+
+
+    return new Response(template(out, hostAbso, host), {
+        headers: { 'content-type': types.html }
+    })
 }
 
 /*
