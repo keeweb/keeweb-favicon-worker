@@ -1,14 +1,20 @@
 /*
-    KeeWeb Favicon Cloudflare Worker > v2
+    KeeWeb Favicon Cloudflare Worker > v1
 
     @authors    : Aetherinox, github.com/aetherinox
                   Antelle, github.com/antelle
-    @base       : keeweb
-    @repo       : https://github.com/keeweb/favicon-worker
-    @site       : https://keeweb.info
+    @repo       : https://github.com/keeweb/keeweb-favicon-worker
+    @repo-cdn   : https://github.com/keeweb/keeweb-favicon-cdn
 
-    @TODO       : script needs to be refactored to clean up a few things.
-                  add ability to specify custom favicon service.
+    @ABOUT      : This cloudflare worker gives you the ability to host your
+                  own favicon grabber. includes support for KeeWeb, as well
+                  as a stand-alone service.
+
+    @USAGE      : https://services.domain.com/favicon/<DOMAIN.COM>/<ICON_SIZE>
+                  favicon.keeweb.workers.dev/favicon/
+                  favicon.keeweb.workers.dev/favicon/domain.com/iconsize
+                  favicon.keeweb.workers.dev/favicon/domain.com/64
+                  services.keeweb.info/favicon/domain.com/iconsize
 
     List of favicon services::
         - https://www.google.com/s2/favicons?domain_url={DOMAIN}&sz={ICON_SIZE}
@@ -56,7 +62,28 @@ const serviceApiBackup = services['duckduckgo'];
 const serviceCdn = 'https://raw.githubusercontent.com/keeweb/keeweb-favicon-cdn/main';
 const faviconSvg = 'data:image/svg+xml,';
 const workerId = 'favicon-worker';
-const workerId = 'keeweb-worker';
+
+/*
+    Define > Worker URLs
+*/
+
+const uriCDN = 'https://github.com/keeweb/keeweb-favicon-cdn';
+
+/*
+    Define > Subroute Settings
+    these are useful for users who wish to add on to this worker and create additional routes such as
+        => get
+        => post
+
+    or for users who want to keep multiple services running on the route on their site.
+
+    Conditional option
+        bSubRoute = true
+            you can search for an icon using domain.com/favicon/reddit.com
+        bSubRoute = false
+            search for an icon without a route path using domain.com/reddit.com
+*/
+
 let bSubRoute = true;
 const route = 'favicon';
 
@@ -64,19 +91,23 @@ const route = 'favicon';
     Maps
 
     for privacy reasons, the official list of blocked ips are not published here.
+
+    The blacklist map is defined as `mapBlacklist`. The IP included below is
+    simply an example.
 */
 
 const mapAllowedNextCheckList = new Map();
 const mapDailyLimit = new Map();
-const mapBlockedIps = new Map([['127.0.0.11:8787', 'Abuse']]);
+const mapBlacklist = new Map([['127.0.0.11:8787', 'Abuse']]);
 
 /*
     Icon Loader Priority:
-        - cdn repo
-        - iconsOverrideIco (ico + png)
-        - iconsOverrideSvg (svg)
-        - api service (ddg, yandex, faviconkit, f1, unavatar)
-        - favicoDefaultSvg
+        - Self-hosted CDN Repository    https://github.com/keeweb/keeweb-favicon-cdn
+        - Localized Override Table      (URLs) (ico + png)              [iconsOverrideIco]
+        - Localized Override Table      (svg)                           [iconsOverrideSvg]
+        - API Service                   (ddg, yandex, faviconkit, f1, unavatar)
+        - Domain Code Scan              (html - link, svg)
+        - Default Logo                                                  [favicoDefaultSvg]
 */
 
 /*
@@ -183,7 +214,7 @@ function throwHelp(env, hostAbso, host) {
 /*
     handle icon name
 
-    Used with keeweb favicon cdn repo.
+    Used with Keeweb favicon cdn repo.
     Cleans up a domain and converts it into an icon name
     that will be looked for on the site.
 
@@ -216,7 +247,9 @@ function handleIconName(url) {
 
     // match full private ip to be replaced with 127.0.0.1
     // https://regex101.com/r/goz7vG/2
-    const urlLocalRegexMatch = hostname.match(/(^localhost)|(^127(\.\d{1,3}){3})|(^192\.168(\.\d{1,3}){2})|(^10(\.\d{1,3}){3})|(^172\.1[6-9](\.\d{1,3}){2})|(^172\.2[0-9](\.\d{1,3}){2})|(^172\.3[0-1](\.\d{1,3}){2})|(^\[?::1\]?)|(^[fF][cCdD])/gi);
+    const urlLocalRegexMatch = hostname.match(
+        /(^localhost)|(^127(\.\d{1,3}){3})|(^192\.168(\.\d{1,3}){2})|(^10(\.\d{1,3}){3})|(^172\.1[6-9](\.\d{1,3}){2})|(^172\.2[0-9](\.\d{1,3}){2})|(^172\.3[0-1](\.\d{1,3}){2})|(^\[?::1\]?)|(^[fF][cCdD])/gi
+    );
 
     // (bool) if ip is private
     const bIsLocalhost = urlLocalRegex.test(hostname);
@@ -228,19 +261,11 @@ function handleIconName(url) {
     iconName = hostname.replace(/[:]/g, '-'); // xxx.xxx.xxx.xxx-xxxx
     let baseName = hostname.split('.')[0]; // folder letter/
 
-    return [ baseName, iconName ];
+    return [baseName, iconName];
 }
 
 /*
     Get Params
-
-    each ip address is limited to 500 successful requests per day.
-    does not count toward the limit if throttled
-
-    @arg        : obj env
-    @arg        : str clientIp
-    @arg        : Date now
-    @returns    : bool
 */
 
 function getParams(url, name) {
@@ -253,19 +278,13 @@ function getParams(url, name) {
     else if (!results[2]) return ''
     else if (results[2]) {
         results[2] = results[2].replace(/\//g, '')
-    let getDailyCount = mapDailyLimit.get(clientIp);
-    if (!getDailyCount || isNaN(getDailyCount)) {
-        getDailyCount = 0;
     }
 
     return decodeURIComponent(results[2].replace(/\+/g, ' '));
-        bBlock = true;
 }
 
 /*
     Service API > Get Random
-        mapDailyLimit.set(clientIp, getDailyCount);
-    }
 
     @usage          serviceRand(services)
 */
@@ -278,8 +297,14 @@ const serviceRand = function (obj) {
 /*
     Method > Throttle
 
-    original version developed by https://github.com/antelle
-    new version developed for cloudflare worker
+    Throttles the connection to set a certain duration before client can attempt to fetch
+    another favicon.
+
+    THROTTLE_AGGRESSIVE will add an incremental punishment onto the client each time they attempt
+    to grab a favicon when their original cooldown period has not yet expired.
+
+    THROTTLE_AGGRESSIVE_PUNISH_MS determines the amount of time to add onto the punishment.
+    Requires THROTTLE_AGGRESSIVE = true
 
     @arg	    : obj env
     @arg	    : str clientIp
@@ -407,7 +432,7 @@ function msToHuman(ms) {
 
 export default {
     /*
-        @arg        : obj request
+        @arg        : obj req
         @arg        : obj env
         @arg        : obj ctx
         @returns    : Response
@@ -459,13 +484,11 @@ export default {
             Security Headers
 
             @note   : if testing, using plugins such as dark-reader will cause CSP errors when not using 'unsafe-inline'.
-                      doesn't matter for users actually in keeweb unless using the browser platform
-
                       browser will also attempt to add in-line styles to center icon.
         */
 
         const DEFAULT_CORS_HEADERS = {
-            'Content-Security-Policy': `default-src 'self' ${headersHost} 'unsafe-inline' https:; img-src 'self';`,
+            'Content-Security-Policy': `default-src 'self' ${host} 'unsafe-inline' https:; img-src 'self';`,
             'Cache-Control': 'max-age=86400, s-maxage=3600',
             'Vary': 'Origin',
             'Access-Control-Max-Age': '86400',
@@ -475,33 +498,21 @@ export default {
         };
 
         /*
-            Show 'welcome' message if request url is the base domain using regex.
-            acceptable domains:
-                - 127.0.0.1 								(development)
-                - favicon.aetherinox.workers.dev 			(development)
-                - favicon.keeweb.workers.dev 				(production)
-                - services.keeweb.info 						(production)
+            get client ip address
+            x-real-ip can be altered by the client. prioritize cf-connecting-ip first.
+        */
 
-            this triggers if the user did not append ?url=domain.com to the request url.
+        const clientIp =
+            req.headers.get('cf-connecting-ip') || req.headers.get('x-real-ip') || host;
+
+        /*
+            define > date
         */
 
         const now = new Date();
 
         /*
-            @todo				: switch from requestUrl to pathname
-            searchParams 		= https://domain.com/?url=domain.com
-            pathname 			= /domain.com
-        */
-
-        const requestURL = new URL(request.url); // returns base domain + params
-        const baseRegex = new RegExp(
-            /^(https?:\/\/)?(127.0.0.1:(\d+)|favicon.aetherinox.workers.dev|favicon.keeweb.workers.dev|services.keeweb.info)\/?$/,
-            'ig'
-        );
-        const bIsBaseOnly = baseRegex.test(requestURL); // triggered only when base URL is used without arguments
-
-        /*
-            default page
+            default page > help / about
         */
 
         if (bIsHostBase || hostFull === host ) {
@@ -509,12 +520,12 @@ export default {
         }
 
         /*
-            check subdomain value
+            check route value
 
-            subdomain has everything after the base domain
-                subdomain   => favicon
+            route has everything after the base domain
+                route   => favicon
 
-            use regex '/^\/favicon\/?(.*)$/gim' to ensure subdomain starts with:
+            use regex '/^\/favicon\/?(.*)$/gim' to ensure route starts with:
                 - /favicon/
 
             example:
@@ -530,8 +541,6 @@ export default {
         // only needed if subRoute enabled
         if (bSubRoute && !bStartsWith) {
             return jsonErr(`404 not found – could not find a valid domain. Must use ${hostBase}/domain.com`, 404, true)
-                { status: 404, reason: 'domain not found' }
-            );
         }
 
         /*
@@ -548,9 +557,9 @@ export default {
         }
 
         /*
-            throw help menu if searchDomain:
+            throw help menu if paramDomain:
                 - blank
-                - contains only /subdomain
+                - contains only /route
         */
 
         if (bSubRoute) {
@@ -566,29 +575,19 @@ export default {
         /*
             Assignment Map
 
-                                          searchDomain
-                                           |────────|
-            http://127.0.0.1:8787/favicon/keeweb.info
-                  ^──────────────^ ^───^
-                    headersHost  subdomain
+                                           paramDomain
+                                          |──────────|
+            http://127.0.0.1:8787/favicon/keeweb.info/
+                  ^─────────────^^──────^
+                       host       route
                                 ^───────────────────^
-                                 requestURL.pathname
+                                  hostFull.pathname
             ^───────────────────────────────────────^
-                    requestURL || request.url
+                   hostFull     ||     req.url
         */
 
-        const cacheKey = new Request(requestURL.toString(), request);
+        const cacheKey = new Request(hostFull.toString(), req);
         const cache = caches.default;
-
-        /*
-            get client ip address
-            x-real-ip can be altered by the client. prioritize cf-connecting-ip first.
-        */
-
-        const clientIp =
-            request.headers.get('cf-connecting-ip') ||
-            request.headers.get('x-real-ip') ||
-            headersHost;
 
         /*
             Manually blocked IPs
@@ -611,7 +610,6 @@ export default {
 
             return new Response(
                 jsonErr(`403 forbidden – you cannot access this service from ${clientIp}: Reason: ${reason}`, 403, true)
-                { status: 403, reason: reason }
             );
         }
 
@@ -690,7 +688,7 @@ export default {
             Cloudflare API > rate limit
         */
 
-        const { success } = await env.keeweb.limit({ key: clientIp });
+        const { success } = await env.favicon.limit({ key: clientIp });
 
         /*
             User hit rate limit
@@ -712,13 +710,13 @@ export default {
         }
 
         /*
-            'searchDomain' can return either:
-                - http://keeweb.info/favicon/keeweb.info            => keeweb.info
-                - http://keeweb.info/favicon/https://keeweb.info    => https://keeweb.info
+            'paramDomain' can return either:
+                - http://services.keeweb.info/favicon/keeweb.info               => keeweb.info
+                - http://services.keeweb.info/favicon/https://keeweb.info       => https://keeweb.info
 
-            'url' strips http/s if it exists at the beginnning of searchDomain.
-                - http://keeweb.info/favicon/keeweb.info            => keeweb.info
-                - http://keeweb.info/favicon/https://keeweb.info    => keeweb.info
+            'url' strips http/s if it exists at the beginnning of paramDomain.
+                - http://services.keeweb.info/favicon/keeweb.info               => keeweb.info
+                - http://services.keeweb.info/favicon/https://keeweb.info       => keeweb.info
 
             'targetUrl` returns object
                 - targetURL.origin
@@ -772,15 +770,15 @@ export default {
             get domain icon short name
         */
 
-        const [ base, iconName ] = handleIconName(targetURL.origin);
+        const [base, iconName] = handleIconName(targetURL.origin);
         const baseFolder = base.charAt(0);
         const iconPath = `${baseFolder}/${iconName}`;
-        const iconUrl = `${serviceBackup}/${baseFolder}/${iconName}.ico`;
+        const iconUrl = `${serviceCdn}/${baseFolder}/${iconName}.ico`;
 
         /*
             Icon Overrides > Favicon CDN Repo > Primary
 
-            Checks KeeWeb favicon repo to see if an override favicon has been uploaded.
+            Checks Keeweb favicon cdn repo to see if an override favicon has been uploaded.
 
             this step will take the name of the specified website and clean it up.
                 - special characters such as dashes are converted into underscores
@@ -791,7 +789,7 @@ export default {
                           my-domain.com     => /m/my-domain.ico
 
             after website domain name formatted; can icon will be searched for within the repo:
-                - https://github.com/keeweb/favicon-cdn
+                - https://github.com/keeweb/keeweb-favicon-cdn
 
             if an icon is found in the github cdn repo; it will be used and have priority over other methods.
         */
@@ -820,7 +818,6 @@ export default {
             }
         }
 
-
         /*
             Icon Overrides > Local > Secondary
 
@@ -829,8 +826,8 @@ export default {
             but this one strictly checks 'iconsOverrideIco' at the top of this file.
 
             'iconPath' is the first letter of domain as folder, and then domain name without TLD.
-                - k/keeweb
                 - r/reddit
+                - k/keeweb
         */
 
         if (iconsOverrideIco[iconPath]) {
@@ -881,7 +878,7 @@ export default {
 
             let customSvgIcon = new Response(iconsOverrideSvg[iconPath], {
                 headers: {
-                    'content-type': 'image/svg+xml',
+                    'content-type': types.svg,
                     ...DEFAULT_CORS_HEADERS
                 }
             });
@@ -900,8 +897,8 @@ export default {
 
         /*
             url should be in the format:
-                - http://services.keeweb.info/favicon/youtube.com/64
-                - http://services.keeweb.info/favicon/{DOMAIN}/{ICON_SIZE}
+                - http://sub.domain.lan/favicon/youtube.com/64
+                - http://sub.domain.lan/favicon/{DOMAIN}/{ICON_SIZE}
 
             since users may add long and complex URLs to their vault, check if the 2nd argument
             is a number to represent the icon size; if not, set the default icon size.
@@ -913,44 +910,60 @@ export default {
         }
 
         /*
-            Find favicon via external service API
+            API
+            this section attempts to fnd an icon using a 3rd party service such as DDG and Google.
         */
 
-        const replacements = { DOMAIN: `${url}`, ICON_SIZE: `${iconSize}` };
+        if (bServiceApiEnabled) {
 
-        /*
-            Replacement strings for service api urls.
+            /*
+                Find favicon via external service API
+            */
 
-            {DOMAIN} will be replaced with the website domain name.
-            {ICON_SIZE} will be replaced with the size of the favicon.
-        */
+            const replacements = { DOMAIN: `${url}`, ICON_SIZE: `${iconSize}` };
 
-        const _serviceQueryUrl = serviceApi.replace(/{(\w+)}/g, (phWithDelims, phNoDelims) =>
-            replacements.hasOwnProperty(phNoDelims) ? replacements[phNoDelims] : phWithDelims
-        );
+            /*
+                Replacement strings for service api urls.
 
-        let serviceQueryUrl = `${_serviceQueryUrl}`;
-        let serviceResultIcon = await fetch(serviceQueryUrl);
+                {DOMAIN} will be replaced with the website domain name.
+                {ICON_SIZE} will be replaced with the size of the favicon.
+            */
 
-        const ct = serviceResultIcon.headers.get('content-type');
-
-        if (ct.includes('application') || ct.includes('text')) {
-            serviceResultIcon = await fetch(`${serviceQueryUrl}`);
-        }
-
-        /*
-            Backup service api url
-
-            this will activate if all previous steps have failed to find a favicon.
-        */
-
-        if (!serviceResultIcon || serviceResultIcon.status !== 200) {
-            const _serviceQueryUrlBackup = serviceApiBackup.replace(/{(\w+)}/g, (phWithDelims, phNoDelims) =>
+            const _serviceQueryUrl = serviceApi.replace(/{(\w+)}/g, (phWithDelims, phNoDelims) =>
                 replacements.hasOwnProperty(phNoDelims) ? replacements[phNoDelims] : phWithDelims
             );
 
-            serviceQueryUrl = `${_serviceQueryUrlBackup}`;
-            serviceResultIcon = await fetch(serviceQueryUrl);
+            let serviceQueryUrl = `${_serviceQueryUrl}`;                // returns `https://s2.googleusercontent.com/s2/favicons?domain=microsoft.com&sz=32`
+            let serviceResultIcon = await fetch(serviceQueryUrl);
+
+            /*
+                api > primary
+            */
+
+            const ct = serviceResultIcon.headers.get('content-type');   // returns `image/png`
+
+            if (ct.includes('application') || ct.includes('text')) {
+                serviceResultIcon = await fetch(`${serviceQueryUrl}`);
+            }
+
+            /*
+                api > backup
+
+                this will activate if all previous steps have failed to find a favicon.
+            */
+
+            if (!serviceResultIcon || serviceResultIcon.status !== 200) {
+                const _serviceQueryUrlBackup = serviceApiBackup.replace(
+                    /{(\w+)}/g,
+                    (phWithDelims, phNoDelims) =>
+                        replacements.hasOwnProperty(phNoDelims)
+                            ? replacements[phNoDelims]
+                            : phWithDelims
+                );
+
+                serviceQueryUrl = `${_serviceQueryUrlBackup}`;
+                serviceResultIcon = await fetch(serviceQueryUrl);
+
                 if ( env.ENVIRONMENT === "dev" ) {
                     console.log(
                         `\x1b[32m[${workerId}]\x1b[0m FIND \x1b[33m[api-backup]\x1b[0m \x1b[33m${serviceQueryUrl}\x1b[0m \x1b[90m|\x1b[0m query by \x1b[32m${clientIp}\x1b[0m`
@@ -962,12 +975,12 @@ export default {
                 }
             }
 
-        /*
-            if a website has a favicon set, then we should have it by now.
-        */
+            /*
+                if a website has a favicon set, then we should have it by now.
+            */
 
-        if (serviceResultIcon && serviceResultIcon.status === 200) {
-            console.log(`\x1b[32m[${workerId}]\x1b[0m LOCATE \x1b[33m[api]\x1b[0m \x1b[33m${serviceQueryUrl}\x1b[0m \x1b[90m|\x1b[0m query by \x1b[32m${clientIp}\x1b[0m`)
+            if (serviceResultIcon && serviceResultIcon.status === 200) {
+
                 if ( env.ENVIRONMENT === "dev" ) {
                     console.log(
                         `\x1b[32m[${workerId}]\x1b[0m FOUND \x1b[33m[api]\x1b[0m \x1b[33m${serviceQueryUrl}\x1b[0m \x1b[90m|\x1b[0m query by \x1b[32m${clientIp}\x1b[0m`
@@ -978,20 +991,20 @@ export default {
                     );
                 }
 
-            const resp = new Response(serviceResultIcon.body, {
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...DEFAULT_CORS_HEADERS
-                }
-            });
-            resp.headers.set('Content-Type', serviceResultIcon.headers.get('content-type'));
+                const resp = new Response(serviceResultIcon.body, {
+                    headers: {
+                        'Content-Type': types.json,
+                        ...DEFAULT_CORS_HEADERS
+                    }
+                });
+                resp.headers.set('Content-Type', serviceResultIcon.headers.get('content-type'));
 
-            if (favicon.includes(faviconSvg)) {
-                return new Response(decodeURI(favicon.split(faviconSvg)[1]), {
-                    headers: { 'content-type': 'image/svg+xml' },
-                    ...DEFAULT_CORS_HEADERS
-                })
-            }
+                if (favicon.includes(faviconSvg)) {
+                    return new Response(decodeURI(favicon.split(faviconSvg)[1]), {
+                        headers: { 'content-type': types.json },
+                        ...DEFAULT_CORS_HEADERS
+                    });
+                }
 
                 if (paramFormat === 'json') {
                     const url = `${serviceQueryUrl}`
@@ -1019,7 +1032,6 @@ export default {
                 element(element) {
                     favicon = element.getAttribute('href');
                     if (favicon.startsWith('/')) {
-                        if (favicon.startsWith('/')) {
                         const prefix = favicon.startsWith('//') ? 'https:' : targetURL.origin
                         favicon = prefix + favicon
                     } else if (!favicon.startsWith('http')) {
