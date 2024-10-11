@@ -599,7 +599,7 @@ export default {
             }
 
             return new Response(
-                `403 forbidden – you cannot access this service from ${clientIp}: Reason: ${reason}`,
+                jsonErr(`403 forbidden – you cannot access this service from ${clientIp}: Reason: ${reason}`, 403, true)
                 { status: 403, reason: reason }
             );
         }
@@ -714,7 +714,13 @@ export default {
         */
 
         let favicon = '';
-        const url = searchDomain.replace(/^(?:https?:\/\/)?(?:www\.)?/gi, '');
+        const url = paramDomain.replace(/^(?:https?:\/\/)?(?:www\.)?/gi, '');
+        if (!url) {
+            return new Response(template('error: invalid url', hostAbso, host), {
+                headers: { 'content-type': types.html }
+            })
+        }
+
         const targetURL = new URL(url.startsWith('https') ? url : 'https://' + url);
 
         /*
