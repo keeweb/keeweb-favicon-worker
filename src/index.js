@@ -460,17 +460,18 @@ export default {
             return all of the values we'll need
         */
 
-        const host = req.headers.get('host') || '';                     // 127.0.0.1:8787
-        const hostFull = new URL(req.url);                              // http://127.0.0.1:8787/
-        const hostBase = bSubRoute ? `${host}/${route}` : `${host}`     // 127.0.0.1:8787/favicon
-        const hostAbso = `${hostFull}${route}`                          // http://127.0.0.1:8787//favicon
-        const bIsHostBase = hostRegex.test(hostFull);                   // triggered only when base URL is used without arguments
+        const host = req.headers.get('host') || '';                                         // 127.0.0.1:8787
+        const hostFull = new URL(req.url);                                                  // http://127.0.0.1:8787/
+        const hostBase = bSubRoute ? `${host}/${route}` : `${host}`                         // 127.0.0.1:8787/favicon
+        const hostAbso = bSubRoute ? `${hostFull.origin}/${route}` : `${hostFull.origin}`   // http://127.0.0.1:8787/favicon
+        const bIsHostBase = hostRegex.test(hostFull);                                       // triggered only when base URL is used without arguments
 
         if ( env.ENVIRONMENT === "dev" ) {
             Logger.var(env, 'host', `${host}`)
             Logger.var(env, 'hostFull', `${hostFull}`)
             Logger.var(env, 'hostBase', `${hostBase}`)
             Logger.var(env, 'hostAbso', `${hostAbso}`)
+            Logger.var(env, 'route', `${route}`)
             Logger.var(env, 'bIsHostBase', `${bIsHostBase}`)
         }
 
