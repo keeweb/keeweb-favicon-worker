@@ -28,7 +28,7 @@ on:
               default:      'favico-cf-worker'
               type:         string
 
-	  ENVIRONMENT:
+	        ENVIRONMENT:
               description:  "📦 Environment: <dev|production>"
               required:     true
               default:      'production'
