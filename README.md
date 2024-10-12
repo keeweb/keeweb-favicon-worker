@@ -102,10 +102,10 @@ https://services.keeweb.info/favicon/keeweb.info/64
 
 <br />
 
-| Parameter | Description | Status |
-| --- | --- | --- |
-| `DOMAIN` | Website to grab favicon for<br><sub>Does not need `http`, `https` or `www`</sub> | Required |
-| `ICON_SIZE` | Size of the icon to return | Optional<br><sub>Default: `32`</sub> |
+| Parameter | Description | Default | Status |
+| --- | --- | --- | --- |
+| <sub>`DOMAIN`</sub> | <sub>Website to grab favicon for<br>Does not require the use of adding `http`, `https` or `www` to your url.</sub> |  | <sub>✔️ Required</sub> |
+| <sub>`ICON_SIZE`</sub> | <sub>Specifies the size of the icon to return. Certain methods may not support down-sizing icons.</sub> | <sub>`32`</sub> | <sub>⭕ Optional</sub> |
 
 <br />
 
