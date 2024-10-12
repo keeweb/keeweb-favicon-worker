@@ -128,8 +128,12 @@ jobs:
         permissions:
             contents: read
             packages: write
+        env:
+            PACKAGE_VERSION: ${{ needs.job-initialize.outputs.package_version }}
         outputs:
           cf_deploy_url: ${{ steps.task_cloudflare_deploy.outputs.deployment-url }}
+          guid: ${{ steps.task_release_dotenv_get.outputs.GUID }}
+          uuid: ${{ steps.task_release_dotenv_get.outputs.UUID }}
         environment:
             name: Orion
         steps:
@@ -206,6 +210,20 @@ jobs:
                   echo "UUID: ${{ steps.task_release_dotenv_get.outputs.UUID }}"
 
             # #
+            #   Build Project & Create Zip
+            # #
+
+            - name: "🔨 Build › Stable ( ${{ inputs.PLUGIN_NAME }}-${{ env.PACKAGE_VERSION }}.zip )"
+              id: task_release_build_st
+              if: ${{ startsWith( inputs.PRERELEASE, false ) }}
+              run: |
+                  echo Building STABLE Package .zip ${{ env.PACKAGE_VERSION }}
+                  zip -r ${{ inputs.PLUGIN_NAME }}-${{ env.PACKAGE_VERSION }}.zip package.json wrangler.toml .prettierrc README.md LICENSE src -x src/tests/**\*
+                  ls
+              env:
+                  NODE_AUTH_TOKEN: ${{ secrets.ADMINSERV_TOKEN_CL }}
+
+            # #
             #   Cloudflare Worker > Debug > Print pacakge Version
             # #
 
@@ -244,45 +262,6 @@ jobs:
                   DEPLOYMENT_URL: ${{ steps.task_cloudflare_deploy.outputs.deployment-url }}
               run: echo $DEPLOYMENT_URL
 
-
-            # #
-            #   Print Status
-            # #
-
-            - name: "🎛️ Status › Print"
-              id: task_release_status_print
-              run: |
-                  echo "Printing Variables"
-                  echo
-                  echo "---- CHANGELOG ---------------------------------------------------------------"
-                  echo "${{ steps.task_release_changelog_categorized.outputs.changelog }}"
-                  echo "${{ steps.task_changelog_uncategorized.outputs.changelog }}"
-                  echo "---- CHANGELOG ---------------------------------------------------------------"
-                  echo ""
-                  echo ""
-                  echo "---- VARIABLES ---------------------------------------------------------------"
-                  echo "Package Version ............ ${{ env.PACKAGE_VERSION }}"
-                  echo "Tag: Previous .............. ${{ env.TAG_LAST }}"
-                  echo "Tag: Now.... ............... ${{ github.ref }}"
-                  echo "Last Commit ................ ${{ env.COMMIT_LAST }}"
-                  echo "ST Output ID ............... ${{ steps.task_release_bundle_st.outputs.id }}"
-                  echo "RC Output ID ............... ${{ steps.task_release_bundle_rc.outputs.id }}"
-                  echo "---- CHANGELOG ---------------------------------------------------------------"
-
-            # #
-            #   Upload artifacts > .deb packages
-            # #
-
-            - name: >-
-                📋 Upload Artifacts › ${{ inputs.PLUGIN_NAME }}-${{ env.PACKAGE_VERSION }}.zip
-              id: task_release_artifact
-              uses: actions/upload-artifact@v4
-              if: always()
-              with:
-                  name: "release"
-                  path: ${{ inputs.PLUGIN_NAME }}-${{ env.PACKAGE_VERSION }}.zip
-                  retention-days: 30
-
     # #
     #   JOB > COMPLETE
     # #
@@ -293,15 +272,10 @@ jobs:
         runs-on: ubuntu-latest
         environment:
             name: Orion
+        env:
+            GUID: ${{ needs.job-cloudflare.outputs.GUID }}
+            UUID: ${{ needs.job-cloudflare.outputs.UUID }}
         steps:
-
-            # #
-            #   Job > Complete > Download Artifacts
-            # #
-
-            - name: "📁 Download › Saved Artifacts"
-              id: task_complete_artifacts_download
-              uses: actions/download-artifact@v4
 
             # #
             #   Job > Complete > Get publish timestamp
@@ -399,4 +373,5 @@ jobs:
                   echo "| **Worker Errors**               | ${{ env.ENV_API_ERR }}        |" >> $GITHUB_STEP_SUMMARY
                   echo "| **Worker Requests**             | ${{ env.ENV_API_REQ }}        |" >> $GITHUB_STEP_SUMMARY
                   echo "| **Worker Subrequests**          | ${{ env.ENV_API_SUBREQ }}     |" >> $GITHUB_STEP_SUMMARY
-
+                  echo "| **GUID**                        | ${{ env.GUID }}               |" >> $GITHUB_STEP_SUMMARY
+                  echo "| **UUID**                        | ${{ env.UUID }}               |" >> $GITHUB_STEP_SUMMARY
