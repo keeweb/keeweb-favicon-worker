@@ -566,7 +566,7 @@ export default {
         if (bSubRoute) {
             paramDomain = hostFull.pathname.replace(`/${route}/`, '');
             if (!paramDomain || paramDomain === `/${route}`) {
-                return throwHelp(env, hostBase, host);
+                return throwHelp(env, hostAbso, host);
             }
         } else {
             // clean up forward slash
