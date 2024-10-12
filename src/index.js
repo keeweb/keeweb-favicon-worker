@@ -23,6 +23,7 @@
         - https://icons.duckduckgo.com/ip3/{DOMAIN}.ico
         - http://favicon.yandex.net/favicon/{DOMAIN}
         - https://api.faviconkit.com/{DOMAIN}/{ICON_SIZE}
+        - https://f1.allesedv.com/{DOMAIN}
         - https://icon.horse/icon/{DOMAIN}      (free plan, 1000 icons/month)
         - https://unavatar.now.sh/{DOMAIN}      (rate limited)
 
