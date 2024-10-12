@@ -14,6 +14,7 @@
                   favicon.keeweb.workers.dev/favicon/
                   favicon.keeweb.workers.dev/favicon/domain.com/iconsize
                   favicon.keeweb.workers.dev/favicon/domain.com/64
+                  favicon.keeweb.workers.dev/favicon/domain.com/64/?format=json
                   services.keeweb.info/favicon/domain.com/iconsize
 
     List of favicon services::
@@ -22,8 +23,8 @@
         - https://icons.duckduckgo.com/ip3/{DOMAIN}.ico
         - http://favicon.yandex.net/favicon/{DOMAIN}
         - https://api.faviconkit.com/{DOMAIN}/{ICON_SIZE}
-        - https://f1.allesedv.com/{DOMAIN}
-        - https://unavatar.now.sh/{DOMAIN} (rate limited)
+        - https://icon.horse/icon/{DOMAIN}      (free plan, 1000 icons/month)
+        - https://unavatar.now.sh/{DOMAIN}      (rate limited)
 
     Alternative examples
         - https://besticon-demo.herokuapp.com/
@@ -51,6 +52,7 @@ services['duckduckgo'] = 'https://icons.duckduckgo.com/ip3/{DOMAIN}.ico';
 services['yandex'] = 'http://favicon.yandex.net/favicon/{DOMAIN}';
 services['allesedv'] = 'https://f1.allesedv.com/{DOMAIN}';
 services['faviconkit'] = 'https://api.faviconkit.com/{DOMAIN}/{ICON_SIZE}';
+services['horse'] = 'https://icon.horse/icon/{DOMAIN}';
 
 /*
     Define > General
