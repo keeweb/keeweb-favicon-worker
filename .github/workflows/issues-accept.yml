@@ -41,7 +41,7 @@ jobs:
     # #
 
     deploy:
-        if: contains(github.event.comment.body, '/accept') && ( github.event.comment.user.login == 'Aetherinox' || github.event.comment.user.login == 'antelle' || github.event.comment.user.login == 'HarlemSquirrel' )
+        if: contains(github.event.comment.body, '/accept') && github.event.comment.user.login == 'Aetherinox'
         runs-on: ubuntu-latest
         steps:
 
